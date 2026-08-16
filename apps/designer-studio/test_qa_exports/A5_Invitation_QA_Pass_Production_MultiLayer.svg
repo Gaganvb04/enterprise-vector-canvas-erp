@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 561 794" width="561" height="794">
+  <g id="Artwork_Layer">
+    <path d="M 0 0 L 561 0 L 561 794 L 0 794 Z" fill="#FAF0E8" stroke="#E0D5C8" stroke-width="1"/>
+  </g>
+  <g id="Cut_Plate" stroke="#FF0000" stroke-width="0.5" fill="none">
+    <path d="M 0 0 L 561 0 L 561 794 L 0 794 Z" />
+    <path d="M110,100 C85,80 55,65 55,40 C55,20 80,15 110,40 C140,15 165,20 165,40 C165,65 135,80 110,100 Z" transform="translate(190, 300) scale(1.5)" />
+  </g>
+  <g id="Partial_Cut_Plate" stroke="#FF00FF" stroke-width="0.5" fill="none">
+    <g transform="translate(180, 280)"><path d="M110,60 C75,10 25,15 45,55 C55,75 80,75 110,65 C80,105 40,105 25,85 C50,115 90,100 110,70 C130,100 170,115 195,85 C180,105 140,105 110,65 C140,75 165,75 175,55 C195,15 145,10 110,60 Z" /></g>
+  </g>
+  <g id="Score_Plate" stroke="#0000FF" stroke-width="0.5" stroke-dasharray="4,2" fill="none">
+    <g transform="translate(180, 280)"><path d="M 95 0 L 95 190" /></g>
+  </g>
+</svg>

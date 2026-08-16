@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Plate: PARTIAL CUT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 561 794" width="561" height="794">
+  <g transform="translate(180, 280)">
+    <path d="M110,60 C75,10 25,15 45,55 C55,75 80,75 110,65 C80,105 40,105 25,85 C50,115 90,100 110,70 C130,100 170,115 195,85 C180,105 140,105 110,65 C140,75 165,75 175,55 C195,15 145,10 110,60 Z" fill="none" stroke="#FF00FF" stroke-width="0.5" />
+  </g>
+</svg>

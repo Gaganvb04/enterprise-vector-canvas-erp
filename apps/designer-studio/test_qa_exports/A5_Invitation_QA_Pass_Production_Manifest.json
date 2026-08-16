@@ -1,0 +1,46 @@
+{
+  "document": "A5_Invitation_QA_Pass",
+  "card": {
+    "widthMm": 148,
+    "heightMm": 210,
+    "widthPx": 561,
+    "heightPx": 794
+  },
+  "material": {
+    "gsm": 300,
+    "paperType": "Premium Cardstock"
+  },
+  "bleedMm": 3,
+  "safeAreaMm": 5,
+  "edges": {
+    "topEdge": "lib-45",
+    "rightEdge": "lib-2",
+    "bottomEdge": "lib-12",
+    "leftEdge": "lib-21"
+  },
+  "cutPaths": [
+    "M 0 0 L 561 0 L 561 794 L 0 794 Z",
+    "M110,100 C85,80 55,65 55,40 C55,20 80,15 110,40 C140,15 165,20 165,40 C165,65 135,80 110,100 Z"
+  ],
+  "partialCutPaths": [
+    {
+      "name": "Butterfly",
+      "shapeId": "lib-67",
+      "x": 180,
+      "y": 280,
+      "width": 189,
+      "height": 189,
+      "bridges": {
+        "count": 2,
+        "widthMm": 1
+      }
+    }
+  ],
+  "scorePaths": [
+    {
+      "pcId": "pc-butterfly",
+      "pathD": "M 95 0 L 95 190"
+    }
+  ],
+  "validation": []
+}

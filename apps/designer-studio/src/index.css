@@ -1,0 +1,267 @@
+@import "tailwindcss";
+
+@theme {
+  --color-studio-bg: #111111;
+  --color-studio-panel: #1a1a1a;
+  --color-studio-panel2: #161616;
+  --color-studio-border: #2a2a2a;
+  --color-studio-hover: #252525;
+  --color-studio-active: #8B5E3C;
+  --color-studio-accent: #C9956C;
+  --color-studio-gold: #D4AF37;
+  --color-studio-rose: #C2637A;
+  --color-studio-text: #e8e0d8;
+  --color-studio-muted: #7a7068;
+  --color-studio-success: #4CAF50;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #111111;
+  color: #e8e0d8;
+  overflow: hidden;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { height: 100vh; display: flex; flex-direction: column; }
+
+/* ─── Layout ──────────────────────────────────────────────────────── */
+.studio-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #111111;
+}
+
+.studio-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Custom scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3a3530; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #5a5048; }
+
+/* ─── Page thumbnail ─────────────────────────────────────────────────── */
+.page-thumb {
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+  aspect-ratio: 148 / 210;
+}
+.page-thumb:hover { border-color: #5a4a3a; transform: scale(1.02); }
+.page-thumb.active { border-color: #C9956C; }
+.page-thumb.dragging { opacity: 0.5; }
+
+/* ─── Canvas area ────────────────────────────────────────────────────── */
+.canvas-workspace {
+  flex: 1;
+  background:
+    radial-gradient(circle at 50% 50%, #1f1a16 0%, #111111 100%);
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+}
+
+/* Dotted grid */
+.canvas-workspace::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, #2a2520 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Invitation canvas card ──────────────────────────────────────────── */
+.invitation-card {
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(201, 149, 108, 0.15),
+    0 8px 40px rgba(0,0,0,0.6),
+    0 2px 8px rgba(0,0,0,0.4);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 1;
+  cursor: default;
+  transition: box-shadow 0.2s;
+}
+
+/* ─── Element selection ──────────────────────────────────────────────── */
+.element-wrapper {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+}
+.element-wrapper.selected::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid #C9956C;
+  border-radius: 3px;
+  pointer-events: none;
+}
+.element-wrapper:hover::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px dashed rgba(201, 149, 108, 0.6);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* ─── Text block ─────────────────────────────────────────────────────── */
+.text-block-wrapper {
+  position: absolute;
+  cursor: text;
+  min-height: 24px;
+}
+.text-block-wrapper.selected::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid #8B9FBF;
+  border-radius: 3px;
+  pointer-events: none;
+}
+.text-block-wrapper textarea {
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  cursor: text;
+}
+
+/* ─── Layer panel groups ─────────────────────────────────────────────── */
+.layer-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a7068;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #b8a898;
+  transition: background 0.1s;
+  border-left: 2px solid transparent;
+}
+.layer-item:hover { background: #222; }
+.layer-item.selected { background: rgba(201, 149, 108, 0.08); border-left-color: #C9956C; color: #e8e0d8; }
+
+/* ─── Left panel tab ─────────────────────────────────────────────────── */
+.panel-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 0;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7a7068;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  width: 100%;
+  border-left: 2px solid transparent;
+}
+.panel-tab:hover { color: #C9956C; background: rgba(201, 149, 108, 0.05); }
+.panel-tab.active { color: #C9956C; border-left-color: #C9956C; background: rgba(201, 149, 108, 0.08); }
+
+/* ─── Color swatch ───────────────────────────────────────────────────── */
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.1s, border-color 0.1s;
+}
+.color-swatch:hover { transform: scale(1.1); border-color: rgba(255,255,255,0.2); }
+.color-swatch.selected { border-color: #C9956C; transform: scale(1.1); }
+
+/* ─── Shape card ─────────────────────────────────────────────────────── */
+.shape-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 10px;
+  color: #7a7068;
+}
+.shape-card:hover { border-color: #3a3530; background: #1e1a16; }
+.shape-card.selected { border-color: #C9956C; background: rgba(201, 149, 108, 0.08); color: #C9956C; }
+
+/* ─── Element card ───────────────────────────────────────────────────── */
+.element-card {
+  border-radius: 8px;
+  cursor: grab;
+  border: 1.5px solid #2a2520;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.1s, box-shadow 0.1s;
+  background: #1e1a16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+}
+.element-card:hover {
+  border-color: #C9956C;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.element-card:active { cursor: grabbing; }
+
+/* ─── Texture card ───────────────────────────────────────────────────── */
+.texture-card {
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  overflow: hidden;
+  transition: border-color 0.15s;
+  aspect-ratio: 2 / 3;
+}
+.texture-card:hover { border-color: #5a4a3a; }
+.texture-card.selected { border-color: #C9956C; }
+
+/* ─── Smooth transitions ─────────────────────────────────────────────── */
+.panel-transition { transition: width 0.2s ease, opacity 0.2s ease; }
+
+/* ─── Dragging ghost ─────────────────────────────────────────────────── */
+.dragging-ghost { opacity: 0.4; }

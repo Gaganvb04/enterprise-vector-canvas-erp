@@ -1,0 +1,16 @@
+{
+  "name": "vector-canvas-microservices-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise 2D Vector Canvas Engine & Node.js API Gateway Platform",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/api-gateway\" \"npm run dev --workspace=apps/designer-studio\"",
+    "build": "npm run build --workspace=apps/api-gateway && npm run build --workspace=apps/designer-studio"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

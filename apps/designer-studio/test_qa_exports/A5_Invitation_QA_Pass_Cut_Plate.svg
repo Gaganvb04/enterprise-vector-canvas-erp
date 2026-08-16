@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Plate: CUT -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 561 794" width="561" height="794">
+  <path d="M 0 0 L 561 0 L 561 794 L 0 794 Z" fill="none" stroke="#FF0000" stroke-width="0.5" />
+  <path d="M110,100 C85,80 55,65 55,40 C55,20 80,15 110,40 C140,15 165,20 165,40 C165,65 135,80 110,100 Z" transform="translate(190, 300) scale(1.5)" fill="none" stroke="#FF0000" stroke-width="0.5" />
+</svg>

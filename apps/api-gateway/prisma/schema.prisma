@@ -1,0 +1,179 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  address   String?
+  role      String   @default("CUSTOMER") // CUSTOMER, ADMIN, DESIGNER, OPS
+  cartData  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+  wishlist  WishlistItem[]
+  plants    UserPlant[]
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  orderNumber   String      @unique
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  status        String      @default("PENDING") // PENDING, PROCESSING, PRINTING, SHIPPED, DELIVERED
+  totalAmount   Float
+  paymentStatus String      @default("UNPAID")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+  assemblyTasks AssemblyTask[]
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  productType String // INVITATION, GROW_KIT, COMBO
+  productId   String
+  quantity    Int
+  price       Float
+  metadata    Json?
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  sku         String   @unique
+  name        String
+  category    String
+  stockLevel  Int      @default(0)
+  minThreshold Int     @default(10)
+  unit        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CatalogItem {
+  id          String   @id @default(uuid())
+  type        String   // INVITATION, PRINT_FINISH, PACKAGING, DELIVERY
+  name        String
+  description String?
+  price       Float    @default(0)
+  metadata    Json?    // For icons, emojis, or UI specific props
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PrintJob {
+  id          String   @id @default(uuid())
+  orderId     String
+  templateId  String
+  paperType   String
+  finish      String
+  machineId   String?
+  operatorId  String?
+  status      String   @default("QUEUE")
+  priority    String   @default("NORMAL")
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Template {
+  id          String   @id @default(uuid())
+  name        String
+  eventType   String?  // e.g. "Wedding", "Birthday", "Corporate"
+  canvasState Json     // Stores elements, dimensions, background color
+  status      String   @default("DRAFT") // DRAFT, PUBLISHED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Issue {
+  id          String   @id @default(uuid())
+  issueNumber String   @unique
+  type        String   // Breakdown, Shortage, QC Reject, Return
+  title       String
+  machine     String?
+  priority    String   @default("Medium") // High, Medium, Low
+  status      String   @default("Open") // Open, In Progress, Resolved
+  assigned    String?
+  reportedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WishlistItem {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  productId   String
+  productType String   // INVITATION, GROW_KIT
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model UserPlant {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  plantName   String
+  registeredAt DateTime @default(now())
+}
+
+model CustomDesignRequest {
+  id          String   @id @default(uuid())
+  userId      String?
+  name        String
+  email       String
+  phone       String
+  eventType   String?
+  quantity    Int?
+  eventDate   String?
+  details     String
+  attachments Json?    // Array of base64 images or URLs
+  aiGeneratedDesigns Json? // Array of generated image URLs or base64
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContactMessage {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  message     String
+  status      String   @default("UNREAD") // UNREAD, READ, REPLIED
+  createdAt   DateTime @default(now())
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model AssemblyTask {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type        String   // Invitation, Grow Kit, Combo
+  status      String   @default("New") // New, In Progress, Assembly, Packaging, Dispatch, Completed
+  assignedTo  String   @default("Unassigned")
+  department  String   @default("General")
+  dueDate     DateTime
+  notes       String?
+  checklist   Json     // Stores array of checklist items: { label: string, done: boolean }[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
