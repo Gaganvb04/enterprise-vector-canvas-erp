@@ -24,8 +24,6 @@
       "environment": [
         { "name": "PORT", "value": "4000" },
         { "name": "NODE_ENV", "value": "production" },
-        { "name": "JWT_SECRET", "value": "rooted_memories_super_secret_jwt_key_2026" },
-        { "name": "DATABASE_URL", "value": "postgresql://admin:password123@localhost:5432/rootedmemories?schema=public" },
         { "name": "AWS_REGION", "value": "us-east-1" },
         { "name": "AWS_S3_BUCKET_NAME", "value": "vector-assets-prod-storage" }
       ],

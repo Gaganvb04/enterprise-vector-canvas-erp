@@ -15,6 +15,11 @@ Parameters:
     Default: production
     Description: Deployment environment name (e.g. production, staging)
 
+  AcmCertificateArn:
+    Type: String
+    Default: ''
+    Description: Optional AWS Certificate Manager (ACM) SSL Certificate ARN for ALB HTTPS (port 443) listener.
+
   ApiImageUri:
     Type: String
     Default: '736530791495.dkr.ecr.us-east-1.amazonaws.com/vcm-api-gateway:latest'
@@ -212,10 +217,6 @@ Resources:
               Value: '4000'
             - Name: NODE_ENV
               Value: 'production'
-            - Name: JWT_SECRET
-              Value: 'rooted_memories_super_secret_jwt_key_2026'
-            - Name: DATABASE_URL
-              Value: 'postgresql://admin:password123@localhost:5432/rootedmemories?schema=public'
             - Name: AWS_REGION
               Value: !Ref AWS::Region
             - Name: AWS_S3_BUCKET_NAME

@@ -177,3 +177,71 @@ model AssemblyTask {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model PublishedTemplateRecord {
+  id                     String   @id @default(uuid())
+  templateId             String   @unique
+  templateVersion        String
+  publicToken            String   @unique
+  publishedAt            DateTime @default(now())
+  publishedBy            String
+  status                 String   @default("published")
+  customerEditableFields Json
+  protectedFields        Json
+  snapshot               Json
+}
+
+model CustomerWorkflowSession {
+  id                String   @id @default(uuid())
+  customerSessionId String   @unique
+  publicToken       String
+  templateId        String
+  templateVersion   String
+  customerData      Json
+  customerImages    Json
+  status            String   @default("draft")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model CustomerSubmissionRecord {
+  id                String   @id @default(uuid())
+  submissionId      String   @unique
+  customerSessionId String
+  publicToken       String
+  templateId        String
+  customerData      Json
+  status            String   @default("submitted")
+  submittedAt       DateTime @default(now())
+  designerNotes     String?
+}
+
+model ImmutableProductionSnapshotRecord {
+  id               String   @id @default(uuid())
+  snapshotId       String   @unique
+  snapshotChecksum String?
+  orderId          String
+  submissionId     String
+  createdAt        DateTime @default(now())
+  pages            Json
+  partialCuts      Json
+  materialConfig   Json
+  manifestJson     Json
+}
+
+model WorkflowOrderRecord {
+  id                   String   @id @default(uuid())
+  orderId              String   @unique
+  submissionId         String
+  publicToken          String
+  templateId           String
+  customerNames        String
+  weddingDate          String
+  venue                String
+  status               String   @default("submitted")
+  productionStatus     String   @default("not_started")
+  createdAt            DateTime @default(now())
+  approvedAt           DateTime?
+  productionSnapshotId String?
+}
+

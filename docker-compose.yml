@@ -28,15 +28,15 @@ services:
     container_name: vector_canvas_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: rootedmemories
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-rootedmemories}
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d rootedmemories"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-rootedmemories}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,12 +55,12 @@ services:
         condition: service_healthy
     environment:
       # Database — points to the postgres service by service name
-      DATABASE_URL: "postgresql://admin:password123@postgres:5432/rootedmemories?schema=public"
+      DATABASE_URL: ${DATABASE_URL}
       PORT: 4000
       NODE_ENV: production
 
       # ── Secrets: override via .env or Docker secrets in production ─────────
-      JWT_SECRET: ${JWT_SECRET:-rooted_memories_super_secret_jwt_key_2026}
+      JWT_SECRET: ${JWT_SECRET}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
 
