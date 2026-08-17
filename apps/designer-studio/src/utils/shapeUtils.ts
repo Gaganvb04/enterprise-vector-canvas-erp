@@ -9,24 +9,35 @@ export const CARD_HEIGHT = 794;
  * Returns a dynamic CSS clip-path string for the card paper shape
  */
 export function getCardClipPath(cardShape: CardShape): string {
-  const { shapeId, clipPath, archHeight = 200, cornerRadius = 0, flapDepth = 150, fourSides } = cardShape;
+  const { shapeId, clipPath, archHeight = 200, cornerRadius = 0, flapDepth = 150, fourSides, cutOuts } = cardShape;
 
-  if (fourSides) {
-    // Use the new edge engine for accurate continuous boundary
-    const pathD = buildFourSideBoundaryPath(fourSides, CARD_WIDTH, CARD_HEIGHT);
-    return `path('${pathD}')`;
-  }
-
-  if (shapeId === 'custom' && clipPath) {
-    return clipPath;
-  }
-
-  // Check if an outer_shape CutOut is placed on the page
-  const outerCut = cardShape.cutOuts?.find(c => c.cutMode === 'outer_shape');
+  // 1. Prioritize outer_shape CutOut placed on page
+  const outerCut = cutOuts?.find(c => c.cutMode === 'outer_shape');
   if (outerCut) {
     const shapeDef = ShapeData.getShape(outerCut.shape || outerCut.name || '');
     if (shapeDef && shapeDef.svgPathD) {
       return `path('${shapeDef.svgPathD}')`;
+    }
+    if (outerCut.svgPathD) {
+      return `path('${outerCut.svgPathD}')`;
+    }
+  }
+
+  // 2. Check 4-side edge configuration if non-straight
+  if (fourSides) {
+    const isCustomFour =
+      fourSides.topEdge !== 'straight_edge' ||
+      fourSides.rightEdge !== 'straight_edge' ||
+      fourSides.bottomEdge !== 'straight_edge' ||
+      fourSides.leftEdge !== 'straight_edge' ||
+      fourSides.topLeftCorner !== 'square' ||
+      fourSides.topRightCorner !== 'square' ||
+      fourSides.bottomLeftCorner !== 'square' ||
+      fourSides.bottomRightCorner !== 'square';
+
+    if (isCustomFour) {
+      const pathD = buildFourSideBoundaryPath(fourSides, CARD_WIDTH, CARD_HEIGHT);
+      return `path('${pathD}')`;
     }
   }
 

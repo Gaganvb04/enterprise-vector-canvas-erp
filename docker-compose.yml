@@ -1,0 +1,113 @@
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Enterprise Vector Canvas & Microservices Platform — Docker Compose
+
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Services:
+#   postgres        — PostgreSQL 15 database
+#   api-gateway     — Node.js Express REST API (port 4000)
+#   designer-studio — React + Vite frontend served by Nginx (port 3000)
+#
+# Usage:
+#   docker compose up --build          # Build & start all services
+#   docker compose up --build -d       # Run in background
+#   docker compose down -v             # Stop and remove volumes
+#   docker compose logs -f api-gateway # Tail API logs
+#
+# Environment:
+#   Copy apps/api-gateway/.env.example to apps/api-gateway/.env and fill in
+#   your real values (AWS keys, JWT secret, Stripe keys) before running.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL Database ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: vector_canvas_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: rootedmemories
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d rootedmemories"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vector_canvas_net
+
+  # ── API Gateway Microservice ───────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: vector_canvas_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database — points to the postgres service by service name
+      DATABASE_URL: "postgresql://admin:password123@postgres:5432/rootedmemories?schema=public"
+      PORT: 4000
+      NODE_ENV: production
+
+      # ── Secrets: override via .env or Docker secrets in production ─────────
+      JWT_SECRET: ${JWT_SECRET:-rooted_memories_super_secret_jwt_key_2026}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+
+      # ── AWS S3 (set these to enable real S3 uploads) ───────────────────────
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-vector-assets-prod-storage}
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - vector_canvas_net
+
+  # ── Designer Studio Frontend ───────────────────────────────────────────────
+  designer-studio:
+    build:
+      context: ./apps/designer-studio
+      dockerfile: Dockerfile
+    container_name: vector_canvas_studio
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks:
+      - vector_canvas_net
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    name: vector_canvas_postgres_data
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  vector_canvas_net:
+    name: vector_canvas_network
+    driver: bridge

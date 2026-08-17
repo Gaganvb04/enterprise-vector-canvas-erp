@@ -643,7 +643,7 @@ export class ShapeData {
     return this.ALL_SHAPES.filter(s => s.category === category);
   }
 
-  static getShape(id: string): InteractiveCutShape {
-    return this.ALL_SHAPES.find(s => s.id === id) || this.ALL_SHAPES[0];
+  static getShape(id: string): InteractiveCutShape | undefined {
+    return this.ALL_SHAPES.find(s => s.id === id);
   }
 }

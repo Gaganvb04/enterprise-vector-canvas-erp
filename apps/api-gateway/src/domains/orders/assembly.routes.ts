@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
 
       const seedTasks = [
         {
-          orderId: orders[0]?.id || null,
+          orderId: orders[0]?.id ?? '',
           type: 'Grow Kit',
           status: 'New',
           assignedTo: 'Ananya R.',
@@ -44,7 +44,7 @@ router.get('/', async (req, res) => {
           ]
         },
         {
-          orderId: orders[1]?.id || null,
+          orderId: orders[1]?.id ?? '',
           type: 'Combo',
           status: 'In Progress',
           assignedTo: 'Vikram S.',
@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
           ]
         },
         {
-          orderId: orders[2]?.id || null,
+          orderId: orders[2]?.id ?? '',
           type: 'Grow Kit',
           status: 'Assembly',
           assignedTo: 'Priya K.',

@@ -1,0 +1,311 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation Template for Enterprise Vector Canvas Microservices Platform — ECS Fargate & ALB Setup'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select the VPC where the Load Balancer and ECS Services will be deployed.
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select at least 2 public Subnets across different Availability Zones for the Application Load Balancer.
+
+  EnvironmentName:
+    Type: String
+    Default: production
+    Description: Deployment environment name (e.g. production, staging)
+
+  ApiImageUri:
+    Type: String
+    Default: '736530791495.dkr.ecr.us-east-1.amazonaws.com/vcm-api-gateway:latest'
+    Description: AWS ECR Docker Image URI for API Gateway Microservice
+
+  StudioImageUri:
+    Type: String
+    Default: '736530791495.dkr.ecr.us-east-1.amazonaws.com/vcm-designer-studio:latest'
+    Description: AWS ECR Docker Image URI for Designer Studio Microservice
+
+Resources:
+
+  # ── 1. ECS Cluster ────────────────────────────────────────────────────────
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: vcm-vector-platform-cluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  # ── 3. IAM Execution Role ──────────────────────────────────────────────────
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: vcm-ecsTaskExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # ── 4. Security Groups ────────────────────────────────────────────────────
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound HTTP/HTTPS traffic to ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: vcm-alb-sg
+
+  ECSTaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic from ALB to ECS Fargate tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 4000
+          ToPort: 4000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: vcm-ecs-task-sg
+
+  # ── 5. Application Load Balancer (ALB) ────────────────────────────────────
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: vcm-vector-platform-alb
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref SubnetIds
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: vcm-alb
+
+  # ── 6. Target Groups ──────────────────────────────────────────────────────
+  StudioTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: vcm-studio-tg
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+      Tags:
+        - Key: Name
+          Value: vcm-studio-tg
+
+  ApiTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: vcm-api-tg
+      Port: 4000
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+      Tags:
+        - Key: Name
+          Value: vcm-api-tg
+
+  # ── 7. ALB Listener & Path Rules ─────────────────────────────────────────
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref StudioTargetGroup
+
+  ApiListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /api/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ApiTargetGroup
+
+  HealthListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 20
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /health
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ApiTargetGroup
+
+  # ── 8. Task Definitions ───────────────────────────────────────────────────
+  APITaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: vcm-api-gateway-task
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: vcm-api-gateway
+          Image: !Ref ApiImageUri
+          Cpu: 256
+          Memory: 512
+          Essential: true
+          PortMappings:
+            - ContainerPort: 4000
+              HostPort: 4000
+              Protocol: tcp
+          Environment:
+            - Name: PORT
+              Value: '4000'
+            - Name: NODE_ENV
+              Value: 'production'
+            - Name: JWT_SECRET
+              Value: 'rooted_memories_super_secret_jwt_key_2026'
+            - Name: DATABASE_URL
+              Value: 'postgresql://admin:password123@localhost:5432/rootedmemories?schema=public'
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: AWS_S3_BUCKET_NAME
+              Value: vector-assets-prod-storage
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/vcm-vector-platform
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: api-gateway
+
+  StudioTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: vcm-designer-studio-task
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: vcm-designer-studio
+          Image: !Ref StudioImageUri
+          Cpu: 256
+          Memory: 512
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/vcm-vector-platform
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: designer-studio
+
+  # ── 9. ECS Services ───────────────────────────────────────────────────────
+  APIService:
+    Type: AWS::ECS::Service
+    DependsOn: ApiListenerRule
+    Properties:
+      ServiceName: vcm-api-gateway-service
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref APITaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref ECSTaskSecurityGroup
+          Subnets: !Ref SubnetIds
+      LoadBalancers:
+        - ContainerName: vcm-api-gateway
+          ContainerPort: 4000
+          TargetGroupArn: !Ref ApiTargetGroup
+
+  StudioService:
+    Type: AWS::ECS::Service
+    DependsOn: ALBListener
+    Properties:
+      ServiceName: vcm-designer-studio-service
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref StudioTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref ECSTaskSecurityGroup
+          Subnets: !Ref SubnetIds
+      LoadBalancers:
+        - ContainerName: vcm-designer-studio
+          ContainerPort: 80
+          TargetGroupArn: !Ref StudioTargetGroup
+
+Outputs:
+  ALBDNSName:
+    Description: Public DNS Endpoint of the Application Load Balancer
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: VCM-ALB-DNSName
+
+  DesignerStudioURL:
+    Description: Access URL for React Designer Studio Frontend
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}/'
+
+  APIGatewayHealthURL:
+    Description: Health Check URL for API Gateway Microservice
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}/health'

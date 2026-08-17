@@ -1,0 +1,17 @@
+node_modules
+dist
+.env
+.env.*
+*.log
+npm-debug.log*
+.nyc_output
+coverage
+.git
+.gitignore
+README.md
+docker-compose.yml
+*.md
+reset-*.ts
+reset-*.js
+test-*.ts
+add-catalog.ts

@@ -27,8 +27,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose }) =
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 600));
-    publishTemplate(versionTag, notes, selectedTier);
+    await publishTemplate(versionTag, notes, selectedTier);
     setIsSubmitting(false);
     setSuccessMsg(true);
     setTimeout(() => {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ShapeData } from '../data/shapes';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -12,9 +13,13 @@ export type ActivePanel = 'pages' | 'shapes' | 'colors' | 'elements' | 'text' | 
 export interface UserUploadAsset {
   id: string;
   name: string;
-  src: string;
+  src: string;        // base64 data URL (local fallback) or S3 CDN URL
   type: 'svg' | 'image';
   createdAt: string;
+  // AWS S3 metadata — present when uploaded via presigned URL
+  s3Key?: string;     // S3 object key e.g. "vector-designs/1234-rose.svg"
+  cdnUrl?: string;    // Public CDN/S3 URL
+  uploadedToS3?: boolean;
 }
 
 export interface Background {
@@ -30,6 +35,7 @@ import type {
   FourSideEdgeConfig, PartialCutObject, MaterialConfig, ValidationWarning
 } from '../types/diecut';
 import { PARTIAL_CUT_SHAPES } from '../utils/partialCutShapes';
+import { publishTemplateToApi } from '../lib/templateApiService';
 
 export interface CardShape {
   shapeId: string;        // 'rectangle' | 'arch_top' | 'scalloped' | 'custom' | ...
@@ -195,6 +201,8 @@ export interface StudioState {
   setShow3DModal: (show: boolean) => void;
   toggleFavorite: (shapeId: string) => void;
   addRecentShape: (shapeId: string) => void;
+  removeRecentShape: (shapeId: string) => void;
+  clearRecentShapes: () => void;
   fitZoomToScreen: () => void;
   fitZoomToWidth: () => void;
   setZoomPreset: (pct: number) => void;
@@ -251,14 +259,16 @@ export interface StudioState {
   // ─── Computed helpers ────────────────────────────────────────────────────────
   getActivePage: () => InvitationPage | undefined;
 
-  // ─── Document & Persistence actions ──────────────────────────────────────────
+  templateDbId: string | null;
+  createNewDesign: () => void;
   setDocumentName: (name: string) => void;
   setEventType: (type: string) => void;
   showToast: (msg: string) => void;
   saveDesign: () => void;
   loadDesign: () => void;
   loadButterflyTemplate: () => void;
-  publishTemplate: (version: string, notes: string, priceTier: 'Standard' | 'Premium' | 'Luxury') => void;
+  publishTemplate: (version: string, notes: string, priceTier: 'Standard' | 'Premium' | 'Luxury') => Promise<void>;
+  loadTemplateFromRecord: (record: any) => void;
 
   // ─── Phase 3 Pencil & Upload Actions ─────────────────────────────────────────
   setPencilStrokeColor: (color: string) => void;
@@ -336,6 +346,7 @@ const defaultBackground = (color = '#FAF0E8', textureId?: string): Background =>
 
 const defaultShape: CardShape = {
   shapeId: 'rectangle',
+  cornerRadius: 0,
   cutOuts: [],
 };
 
@@ -465,6 +476,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   documentName: 'New Invitation Design',
   eventType: 'Wedding',
   status: 'DRAFT',
+  templateDbId: null,
 
   // Phase 3 Versioning & Uploads
   version: 'v1.0',
@@ -824,7 +836,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   showRulers: false,
   show3DModal: false,
   favorites: [],
-  recentShapes: ['lib-45', 'lib-67', 'lib-94'],
+  recentShapes: [],
 
   setUiMode: (mode) => set({ uiMode: mode, showProductionLines: mode === 'production' }),
   toggleRulers: () => set(s => ({ showRulers: !s.showRulers })),
@@ -838,11 +850,24 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     showToast(isFav ? 'Removed from Favorites' : 'Added to Favorites ★');
   },
   addRecentShape: (shapeId) => {
+    if (!ShapeData.getShape(shapeId)) return;
     const { recentShapes } = get();
     const filtered = recentShapes.filter(id => id !== shapeId);
     const updated = [shapeId, ...filtered].slice(0, 16);
     set({ recentShapes: updated });
     localStorage.setItem('rooted_studio_recents_v1', JSON.stringify(updated));
+  },
+  removeRecentShape: (shapeId) => {
+    const { recentShapes, showToast } = get();
+    const updated = recentShapes.filter(id => id !== shapeId);
+    set({ recentShapes: updated });
+    localStorage.setItem('rooted_studio_recents_v1', JSON.stringify(updated));
+    showToast('Removed item from history');
+  },
+  clearRecentShapes: () => {
+    set({ recentShapes: [] });
+    localStorage.removeItem('rooted_studio_recents_v1');
+    get().showToast('Cleared shape history');
   },
   fitZoomToScreen: () => set({ zoom: 0.85 }),
   fitZoomToWidth: () => set({ zoom: 1.1 }),
@@ -908,14 +933,16 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       }
       const rawRecents = localStorage.getItem('rooted_studio_recents_v1');
       if (rawRecents) {
-        set({ recentShapes: JSON.parse(rawRecents) });
+        const parsed: string[] = JSON.parse(rawRecents);
+        const valid = parsed.filter(id => ShapeData.getShape(id) !== undefined);
+        set({ recentShapes: valid });
       }
     } catch (e) {
       console.error('Error loading design', e);
     }
   },
 
-  publishTemplate: (version, notes, priceTier) => {
+  publishTemplate: async (version, notes, priceTier) => {
     const publishedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     set({
       status: 'PRINT_APPROVED',
@@ -925,7 +952,52 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       publishedAt: publishedDate,
     });
     get().saveDesign();
-    get().showToast(`Published template version ${version}!`);
+
+    // ── Sync with PostgreSQL via API Gateway ─────────────────────────────────
+    const { documentName, eventType, pages, partialCuts, materialConfig, templateDbId } = get();
+    const result = await publishTemplateToApi({
+      templateId: templateDbId,
+      documentName,
+      eventType,
+      version,
+      designerNotes: notes,
+      priceTier,
+      publishedAt: publishedDate,
+      pages,
+      partialCuts,
+      materialConfig,
+    });
+
+    if (result.success && result.data) {
+      set({ templateDbId: result.data.id });
+      get().showToast(`Published & synced to Cloud DB (ID: ${result.data.id.slice(0, 8)}…)!`);
+    } else {
+      get().showToast(`Published locally (API sync offline)`);
+    }
+  },
+
+  loadTemplateFromRecord: (record: any) => {
+    try {
+      if (!record) return;
+      const state = record.canvasState || {};
+      set({
+        templateDbId: record.id,
+        documentName: record.name || get().documentName,
+        eventType: record.eventType || get().eventType,
+        status: record.status === 'PUBLISHED' ? 'PRINT_APPROVED' : 'DRAFT',
+        version: state.version || 'v1.0',
+        designerNotes: state.designerNotes || '',
+        priceTier: state.priceTier || 'Premium',
+        publishedAt: state.publishedAt || null,
+        pages: state.pages || get().pages,
+        partialCuts: state.partialCuts || [],
+        materialConfig: state.materialConfig || get().materialConfig,
+        activePageId: state.pages?.[0]?.id || get().activePageId,
+      });
+      get().showToast(`Loaded "${record.name}" from Cloud DB`);
+    } catch (e) {
+      console.error('Failed to load template record:', e);
+    }
   },
 
   // Paint-Style Shape Tool State
@@ -1077,11 +1149,24 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     };
 
     set({
-      pages: s.pages.map(p => p.id === activePage.id ? { ...p, cardShape: { ...p.cardShape, fourSides: defaultFour } } : p),
+      pages: s.pages.map(p =>
+        p.id === activePage.id
+          ? {
+              ...p,
+              cardShape: {
+                ...p.cardShape,
+                shapeId: 'rectangle',
+                cornerRadius: 0,
+                fourSides: defaultFour,
+                cutOuts: [],
+              },
+            }
+          : p
+      ),
     });
     s.pushHistory();
     s.runProductionValidation();
-    s.showToast('Reset all card edges to straight rectangle');
+    s.showToast('Reset card boundary to straight flat rectangle');
   },
 
   setMaterialGsm: (gsm) => {
@@ -1235,6 +1320,24 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   },
 
   // ─── Document ────────────────────────────────────────────────────────────────
+  createNewDesign: () => {
+    set({
+      documentId: `doc-${uid()}`,
+      documentName: 'Untitled Invitation Design',
+      eventType: 'Wedding',
+      status: 'DRAFT',
+      templateDbId: null,
+      version: 'v1.0',
+      designerNotes: '',
+      publishedAt: null,
+      pages: INITIAL_PAGES,
+      activePageId: 'page-1',
+      partialCuts: [],
+      history: [],
+      historyIndex: -1,
+    });
+    get().showToast('✨ Created New Blank Invitation Design');
+  },
   setDocumentName: (name) => set({ documentName: name }),
   setEventType: (type) => set({ eventType: type }),
 

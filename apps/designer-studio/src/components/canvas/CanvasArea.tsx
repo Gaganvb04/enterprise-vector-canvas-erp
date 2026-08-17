@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useStudioStore } from '../../store/studioStore';
 import { getCardClipPath } from '../../utils/shapeUtils';
+import { ShapeData } from '../../data/shapes';
 import type { DesignElement, TextBlock } from '../../store/studioStore';
 import type { PartialCutObject } from '../../types/diecut';
 import { ProductionOverlay } from './ProductionOverlay';
@@ -724,13 +725,15 @@ export const CanvasArea: React.FC = () => {
             }} />
           )}
 
-          {/* Target Edge Side Highlight */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
-            {selectedEdgeSide === 'top' && <line x1="0" y1="2" x2={cardW} y2="2" stroke="#C9956C" strokeWidth="4" />}
-            {selectedEdgeSide === 'right' && <line x1={cardW - 2} y1="0" x2={cardW - 2} y2={cardH} stroke="#C9956C" strokeWidth="4" />}
-            {selectedEdgeSide === 'bottom' && <line x1="0" y1={cardH - 2} x2={cardW} y2={cardH - 2} stroke="#C9956C" strokeWidth="4" />}
-            {selectedEdgeSide === 'left' && <line x1="2" y1="0" x2="2" y2={cardH} stroke="#C9956C" strokeWidth="4" />}
-          </svg>
+          {/* Target Edge Side Highlight (Only in Production Mode) */}
+          {uiMode === 'production' && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+              {selectedEdgeSide === 'top' && <line x1="0" y1="2" x2={cardW} y2="2" stroke="#C9956C" strokeWidth="4" />}
+              {selectedEdgeSide === 'right' && <line x1={cardW - 2} y1="0" x2={cardW - 2} y2={cardH} stroke="#C9956C" strokeWidth="4" />}
+              {selectedEdgeSide === 'bottom' && <line x1="0" y1={cardH - 2} x2={cardW} y2={cardH - 2} stroke="#C9956C" strokeWidth="4" />}
+              {selectedEdgeSide === 'left' && <line x1="2" y1="0" x2="2" y2={cardH} stroke="#C9956C" strokeWidth="4" />}
+            </svg>
+          )}
 
           {/* Content Layer Scale Container */}
           <div style={{ position: 'absolute', inset: 0, transform: `scale(${zoom})`, transformOrigin: '0 0', width: CARD_W, height: CARD_H }}>
@@ -746,6 +749,38 @@ export const CanvasArea: React.FC = () => {
                 />
               </svg>
             )}
+
+            {/* Placed Page Cutouts & Aperture Windows Overlay */}
+            {page.cardShape?.cutOuts?.map(cut => {
+              const shapeDef = ShapeData.getShape(cut.shape || cut.name || '');
+              const pathD = cut.svgPathD || shapeDef?.svgPathD;
+              if (!pathD) return null;
+
+              return (
+                <svg
+                  key={cut.id}
+                  style={{
+                    position: 'absolute',
+                    left: cut.x ?? 0,
+                    top: cut.y ?? 0,
+                    width: cut.width || CARD_W,
+                    height: cut.height || 100,
+                    pointerEvents: 'none',
+                    zIndex: 45,
+                  }}
+                  viewBox={`0 0 ${cut.width || CARD_W} ${cut.height || 100}`}
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d={pathD}
+                    fill={cut.cutMode === 'inner_hole' ? 'rgba(22, 20, 18, 0.95)' : 'none'}
+                    stroke={cut.cutMode === 'inner_hole' ? '#FF0055' : '#C9956C'}
+                    strokeWidth="2.5"
+                    strokeDasharray={cut.cutMode === 'partial_popup' ? '5,3' : undefined}
+                  />
+                </svg>
+              );
+            })}
 
             {/* Partial Cut Objects */}
             {partialCuts.map(pc => (

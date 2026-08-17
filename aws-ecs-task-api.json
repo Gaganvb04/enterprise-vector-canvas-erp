@@ -1,0 +1,42 @@
+{
+  "family": "vcm-api-gateway-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::736530791495:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "vcm-api-gateway",
+      "image": "736530791495.dkr.ecr.us-east-1.amazonaws.com/vcm-api-gateway:latest",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 4000,
+          "hostPort": 4000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "PORT", "value": "4000" },
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "JWT_SECRET", "value": "rooted_memories_super_secret_jwt_key_2026" },
+        { "name": "DATABASE_URL", "value": "postgresql://admin:password123@localhost:5432/rootedmemories?schema=public" },
+        { "name": "AWS_REGION", "value": "us-east-1" },
+        { "name": "AWS_S3_BUCKET_NAME", "value": "vector-assets-prod-storage" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/vcm-vector-platform",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "api-gateway"
+        }
+      }
+    }
+  ]
+}

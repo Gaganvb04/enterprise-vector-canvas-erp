@@ -21,6 +21,14 @@ import prisma from './lib/prisma';
 
 dotenv.config();
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[WARN] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[WARN] Uncaught Exception thrown:', err);
+});
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
   apiVersion: '2024-04-10' as any,
 });
@@ -135,6 +143,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'API Gateway is running smoothly.' });
 });
 
-app.listen(port, () => {
-  console.log(`API Gateway listening at http://localhost:${port}`);
+app.listen(Number(port), '0.0.0.0', () => {
+  console.log(`API Gateway listening at http://0.0.0.0:${port}`);
 });

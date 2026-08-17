@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import {
   Undo2, Redo2, Download, Send, ChevronDown, Save, Loader2, Check,
   Grid, RotateCw, Ruler, Sliders, AlignLeft, AlignCenter, AlignRight,
-  FileText, Scissors, Image as ImageIcon, Type as TypeIcon, Box
+  FileText, Scissors, Image as ImageIcon, Type as TypeIcon, Box, Cloud,
+  FilePlus, FolderOpen, Copy as CopyIcon, FileCheck
 } from 'lucide-react';
 import { useStudioStore } from '../../store/studioStore';
 import { getCardSvgPathD } from '../../utils/shapeUtils';
 import { PublishModal } from './PublishModal';
+import { CloudTemplatesModal } from './CloudTemplatesModal';
 
 export const TopBar: React.FC = () => {
   const {
-    documentName, setDocumentName,
+    documentName, setDocumentName, createNewDesign,
     undo, redo, history, historyIndex,
     showGrid, toggleGrid, rotatePage,
     saveDesign, showToast,
@@ -27,8 +29,22 @@ export const TopBar: React.FC = () => {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState<'file' | 'edit' | 'view' | 'design' | 'production' | null>(null);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [cloudTemplatesModalOpen, setCloudTemplatesModalOpen] = useState(false);
+  const [saveAsModalOpen, setSaveAsModalOpen] = useState(false);
+  const [saveAsName, setSaveAsName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleSaveAsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saveAsName.trim()) return;
+    const newTitle = saveAsName.trim();
+    setDocumentName(newTitle);
+    useStudioStore.setState({ templateDbId: null });
+    saveDesign();
+    setSaveAsModalOpen(false);
+    showToast(`Saved copy as "${newTitle}"`);
+  };
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -267,12 +283,99 @@ Generated at: ${new Date().toLocaleString()}
 
             {/* App Menus (File, Edit, View, Design, Production) */}
             <div className="hidden lg:flex items-center gap-1 text-[11px] font-medium text-[#9E9285]">
-              <button
-                onClick={() => setMenuOpen(menuOpen === 'file' ? null : 'file')}
-                className="px-2 py-1 rounded hover:bg-[#252118] hover:text-[#E5D7C5] transition-colors"
-              >
-                File
-              </button>
+              {/* File Menu Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(menuOpen === 'file' ? null : 'file')}
+                  className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
+                    menuOpen === 'file' ? 'bg-[#252118] text-[#E5D7C5] font-bold' : 'hover:bg-[#252118] hover:text-[#E5D7C5]'
+                  }`}
+                >
+                  <span>File</span>
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
+
+                {menuOpen === 'file' && (
+                  <div className="absolute left-0 mt-1.5 w-56 rounded-xl shadow-2xl overflow-hidden z-50 bg-[#161412] border border-[#322C22] py-1 text-xs">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(null);
+                        if (confirm('Create a new blank design? (Make sure to save your current work)')) {
+                          createNewDesign();
+                        }
+                      }}
+                      className="w-full text-left px-3.5 py-2 flex items-center justify-between text-[#E5D7C5] hover:bg-[#252118] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FilePlus className="h-4 w-4 text-amber-500" />
+                        <span>New Design</span>
+                      </div>
+                      <span className="text-[10px] text-neutral-500">Ctrl+N</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setMenuOpen(null);
+                        setCloudTemplatesModalOpen(true);
+                      }}
+                      className="w-full text-left px-3.5 py-2 flex items-center justify-between text-[#E5D7C5] hover:bg-[#252118] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="h-4 w-4 text-amber-500" />
+                        <span>Open Design...</span>
+                      </div>
+                      <span className="text-[10px] text-neutral-500">Ctrl+O</span>
+                    </button>
+
+                    <div className="my-1 border-t border-[#252118]" />
+
+                    <button
+                      onClick={() => {
+                        setMenuOpen(null);
+                        handleSave();
+                      }}
+                      className="w-full text-left px-3.5 py-2 flex items-center justify-between text-[#E5D7C5] hover:bg-[#252118] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Save className="h-4 w-4 text-amber-500" />
+                        <span>Save</span>
+                      </div>
+                      <span className="text-[10px] text-neutral-500">Ctrl+S</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setMenuOpen(null);
+                        setSaveAsName(`${documentName} Copy`);
+                        setSaveAsModalOpen(true);
+                      }}
+                      className="w-full text-left px-3.5 py-2 flex items-center justify-between text-[#E5D7C5] hover:bg-[#252118] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CopyIcon className="h-4 w-4 text-amber-500" />
+                        <span>Save As...</span>
+                      </div>
+                      <span className="text-[10px] text-neutral-500">Ctrl+Shift+S</span>
+                    </button>
+
+                    <div className="my-1 border-t border-[#252118]" />
+
+                    <button
+                      onClick={() => {
+                        setMenuOpen(null);
+                        setPublishModalOpen(true);
+                      }}
+                      className="w-full text-left px-3.5 py-2 flex items-center justify-between text-[#C9956C] font-bold hover:bg-[#252118] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Send className="h-4 w-4 text-[#C9956C]" />
+                        <span>Publish Template...</span>
+                      </div>
+                      <span className="text-[10px] text-amber-500">Version</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setMenuOpen(menuOpen === 'edit' ? null : 'edit')}
                 className="px-2 py-1 rounded hover:bg-[#252118] hover:text-[#E5D7C5] transition-colors"
@@ -349,6 +452,16 @@ Generated at: ${new Date().toLocaleString()}
             >
               {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saveSuccess ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
               <span className="hidden md:inline">{isSaving ? 'Saving…' : saveSuccess ? 'Saved' : 'Save'}</span>
+            </button>
+
+            {/* Cloud Database Button */}
+            <button
+              onClick={() => setCloudTemplatesModalOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-[#252118] text-[#E5D7C5] hover:bg-[#322C22] transition-colors border border-[#322C22]"
+              title="Open Cloud Template Database (API Gateway)"
+            >
+              <Cloud className="h-3.5 w-3.5 text-amber-500" />
+              <span>Cloud DB</span>
             </button>
 
             {/* 3D Physical Preview Button */}
@@ -560,6 +673,63 @@ Generated at: ${new Date().toLocaleString()}
 
       {/* Publish Modal */}
       <PublishModal isOpen={publishModalOpen} onClose={() => setPublishModalOpen(false)} />
+
+      {/* Cloud Template Database Modal */}
+      <CloudTemplatesModal isOpen={cloudTemplatesModalOpen} onClose={() => setCloudTemplatesModalOpen(false)} />
+
+      {/* Save As Modal */}
+      {saveAsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
+          <div
+            className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border p-5 space-y-4 text-xs"
+            style={{ background: '#161616', borderColor: '#2a2520', color: '#e8e0d8' }}
+          >
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: '#2a2520' }}>
+              <div className="flex items-center gap-2">
+                <CopyIcon className="h-4 w-4 text-amber-500" />
+                <h3 className="font-bold text-sm text-neutral-100">Save Design Copy As</h3>
+              </div>
+              <button onClick={() => setSaveAsModalOpen(false)} className="p-1 rounded text-neutral-400 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAsSubmit} className="space-y-3">
+              <div>
+                <label className="font-semibold text-neutral-300 block mb-1">
+                  New Design Document Name
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={saveAsName}
+                  onChange={e => setSaveAsName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-lg outline-none text-xs font-semibold"
+                  style={{ background: '#111', border: '1px solid #2a2520', color: '#e8e0d8' }}
+                  placeholder="Enter name for your new design copy..."
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSaveAsModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-neutral-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-lg font-bold bg-[#C9956C] text-[#161412] hover:bg-[#D4A37A]"
+                >
+                  Save Copy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };
