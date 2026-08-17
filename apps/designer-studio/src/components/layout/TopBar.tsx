@@ -3,12 +3,19 @@ import {
   Undo2, Redo2, Download, Send, ChevronDown, Save, Loader2, Check,
   Grid, RotateCw, Ruler, Sliders, AlignLeft, AlignCenter, AlignRight,
   FileText, Scissors, Image as ImageIcon, Type as TypeIcon, Box, Cloud,
-  FilePlus, FolderOpen, Copy as CopyIcon, FileCheck
+  FilePlus, FolderOpen, Copy as CopyIcon, X, LayoutGrid, UserCheck, Package, Palette, Pencil
 } from 'lucide-react';
 import { useStudioStore } from '../../store/studioStore';
 import { getCardSvgPathD } from '../../utils/shapeUtils';
 import { PublishModal } from './PublishModal';
 import { CloudTemplatesModal } from './CloudTemplatesModal';
+import { StepNavigationHeader } from './StepNavigationHeader';
+import { TemplateGalleryModal } from './TemplateGalleryModal';
+import { CustomerApprovalModal } from './CustomerApprovalModal';
+import { SaleableExportModal } from './SaleableExportModal';
+import { DesignerReviewModal } from './DesignerReviewModal';
+import { OrderDashboardModal } from './OrderDashboardModal';
+import { ColorPaletteModal } from '../tools/ColorPaletteModal';
 
 export const TopBar: React.FC = () => {
   const {
@@ -20,7 +27,9 @@ export const TopBar: React.FC = () => {
     showRulers, toggleRulers,
     selected, getActivePage,
     selectedPartialCutId, partialCuts, updateTextBlock,
-    selectedEdgeSide, setShow3DModal
+    selectedEdgeSide, setShow3DModal,
+    templateGalleryOpen, setTemplateGalleryOpen,
+    appMode, setAppMode, customerSubmissionStatus
   } = useStudioStore();
 
   const page = getActivePage();
@@ -34,6 +43,13 @@ export const TopBar: React.FC = () => {
   const [saveAsName, setSaveAsName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Phase 10, 11, 12 & 14 Modal States
+  const [saleableExportOpen, setSaleableExportOpen] = useState(false);
+  const [customerApprovalOpen, setCustomerApprovalOpen] = useState(false);
+  const [designerReviewOpen, setDesignerReviewOpen] = useState(false);
+  const [orderDashboardOpen, setOrderDashboardOpen] = useState(false);
+  const [colorPaletteOpen, setColorPaletteOpen] = useState(false);
 
   const handleSaveAsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,21 +288,42 @@ Generated at: ${new Date().toLocaleString()}
                 className="text-xs font-semibold px-2 py-0.5 rounded bg-[#252118] text-[#E5D7C5] outline-none border border-[#C9956C]"
               />
             ) : (
-              <span
-                onClick={() => setEditingName(true)}
-                className="text-xs font-semibold text-[#C9956C] hover:underline cursor-pointer truncate max-w-[220px]"
-                title="Click to rename document"
-              >
-                {documentName}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-semibold text-[#C9956C] truncate max-w-[160px]">
+                  {documentName}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setNameValue(documentName);
+                    setEditingName(true);
+                  }}
+                  className="p-1 text-[#8C8073] hover:text-[#C9956C] transition-colors rounded"
+                  title="Rename Invitation Document"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </div>
             )}
+
+            <div className="w-px h-4 bg-[#252118]" />
+
+            {/* Phase 10 Step Navigation Header */}
+            <StepNavigationHeader />
 
             {/* App Menus (File, Edit, View, Design, Production) */}
             <div className="hidden lg:flex items-center gap-1 text-[11px] font-medium text-[#9E9285]">
               {/* File Menu Dropdown */}
               <div className="relative">
                 <button
-                  onClick={() => setMenuOpen(menuOpen === 'file' ? null : 'file')}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setMenuOpen(menuOpen === 'file' ? null : 'file');
+                  }}
                   className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
                     menuOpen === 'file' ? 'bg-[#252118] text-[#E5D7C5] font-bold' : 'hover:bg-[#252118] hover:text-[#E5D7C5]'
                   }`}
@@ -298,19 +335,39 @@ Generated at: ${new Date().toLocaleString()}
                 {menuOpen === 'file' && (
                   <div className="absolute left-0 mt-1.5 w-56 rounded-xl shadow-2xl overflow-hidden z-50 bg-[#161412] border border-[#322C22] py-1 text-xs">
                     <button
-                      onClick={() => {
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setMenuOpen(null);
-                        if (confirm('Create a new blank design? (Make sure to save your current work)')) {
-                          createNewDesign();
-                        }
+                        setTemplateGalleryOpen(true);
                       }}
                       className="w-full text-left px-3.5 py-2 flex items-center justify-between text-[#E5D7C5] hover:bg-[#252118] transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <FilePlus className="h-4 w-4 text-amber-500" />
-                        <span>New Design</span>
+                        <span>New Invitation Design</span>
                       </div>
                       <span className="text-[10px] text-neutral-500">Ctrl+N</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMenuOpen(null);
+                        if (confirm('Create a new blank canvas? (Make sure to save your current work)')) {
+                          createNewDesign();
+                          showToast('✦ Created blank invitation canvas');
+                        }
+                      }}
+                      className="w-full text-left px-3.5 py-2 flex items-center justify-between text-[#E5D7C5] hover:bg-[#252118] transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-amber-500" />
+                        <span>New Blank Canvas</span>
+                      </div>
                     </button>
 
                     <button
@@ -452,6 +509,95 @@ Generated at: ${new Date().toLocaleString()}
             >
               {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saveSuccess ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
               <span className="hidden md:inline">{isSaving ? 'Saving…' : saveSuccess ? 'Saved' : 'Save'}</span>
+            </button>
+
+            {/* App Mode Switcher Pill */}
+            <div className="flex items-center p-0.5 rounded-lg bg-[#141210] border border-[#252118]">
+              <button
+                onClick={() => setAppMode('designer')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                  appMode === 'designer' ? 'bg-[#C9956C] text-[#161412] shadow' : 'text-[#8C8073] hover:text-[#E5D7C5]'
+                }`}
+              >
+                🎨 Designer Mode
+              </button>
+              <button
+                onClick={() => setAppMode('customer')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                  appMode === 'customer' ? 'bg-[#C9956C] text-[#161412] shadow' : 'text-[#8C8073] hover:text-[#E5D7C5]'
+                }`}
+              >
+                👤 Customer Mode
+              </button>
+            </div>
+
+            {/* Designer Review Modal Button */}
+            {appMode === 'designer' && (
+              <button
+                onClick={() => setDesignerReviewOpen(true)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  customerSubmissionStatus === 'submitted'
+                    ? 'bg-amber-500 text-[#161412] animate-bounce shadow-lg font-extrabold'
+                    : 'bg-[#252118] text-[#E5D7C5] hover:bg-[#322C22] border border-[#322C22]'
+                }`}
+                title="Review Customer Submissions"
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                <span>Designer Review</span>
+                {customerSubmissionStatus === 'submitted' && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                )}
+              </button>
+            )}
+
+            {/* Curated Color Palettes & Fonts Button */}
+            <button
+              onClick={() => setColorPaletteOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#252118] text-[#E5D7C5] hover:bg-[#322C22] transition-colors border border-[#322C22]"
+              title="Open Curated Color Palettes & Typography Presets"
+            >
+              <Palette className="h-3.5 w-3.5 text-[#C9956C]" />
+              <span>Palettes</span>
+            </button>
+
+            {/* Orders & Production Dashboard Button */}
+            <button
+              onClick={() => setOrderDashboardOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#252118] text-[#E5D7C5] hover:bg-[#322C22] transition-colors border border-[#322C22]"
+              title="Open Orders & Production Dashboard"
+            >
+              <Package className="h-3.5 w-3.5 text-[#C9956C]" />
+              <span>Orders &amp; Prod</span>
+            </button>
+
+            {/* New Invitation Design Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setTemplateGalleryOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#C9956C] text-[#161412] hover:bg-[#D4A37A] transition-all shadow-md"
+              title="Open Create Your Invitation Workflow"
+            >
+              <FilePlus className="h-3.5 w-3.5" />
+              <span>New Invitation Design</span>
+            </button>
+
+            {/* Templates Gallery Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setTemplateGalleryOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#C9956C]/20 text-[#C9956C] border border-[#C9956C]/40 hover:bg-[#C9956C] hover:text-[#161412] transition-all shadow-md"
+              title="Browse Templates Gallery"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Templates</span>
             </button>
 
             {/* Cloud Database Button */}
@@ -730,6 +876,14 @@ Generated at: ${new Date().toLocaleString()}
           </div>
         </div>
       )}
+
+      {/* Phase 10, 11, 12 & 14 Modals */}
+      <TemplateGalleryModal isOpen={templateGalleryOpen} onClose={() => setTemplateGalleryOpen(false)} />
+      <CustomerApprovalModal isOpen={customerApprovalOpen} onClose={() => setCustomerApprovalOpen(false)} onOpenExport={() => setSaleableExportOpen(true)} />
+      <SaleableExportModal isOpen={saleableExportOpen} onClose={() => setSaleableExportOpen(false)} />
+      <DesignerReviewModal isOpen={designerReviewOpen} onClose={() => setDesignerReviewOpen(false)} />
+      <OrderDashboardModal isOpen={orderDashboardOpen} onClose={() => setOrderDashboardOpen(false)} />
+      <ColorPaletteModal isOpen={colorPaletteOpen} onClose={() => setColorPaletteOpen(false)} />
     </>
   );
 };

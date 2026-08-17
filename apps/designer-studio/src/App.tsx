@@ -9,6 +9,8 @@ import { X, Keyboard } from 'lucide-react';
 import type { PartialCutObject } from './types/diecut';
 import './index.css';
 
+import { CustomerPersonalizationPanel } from './components/layout/CustomerPersonalizationPanel';
+
 export const App: React.FC = () => {
   const {
     setActiveTool, undo, redo, selected, setSelected,
@@ -18,6 +20,7 @@ export const App: React.FC = () => {
     toggleLockSelected, toggleVisibilitySelected, bringForward, sendBackward,
     zoom, setZoom, toggleGrid, saveDesign, loadDesign,
     show3DModal, setShow3DModal,
+    appMode, setStep,
     // Die-Cut & Partial Cut state & actions
     selectedPartialCutId, setSelectedPartialCutId, partialCuts,
     removePartialCutObject, updatePartialCutObject, addPartialCutObject, showToast
@@ -300,9 +303,18 @@ export const App: React.FC = () => {
     <div className="studio-root relative">
       <TopBar />
       <div className="studio-body">
-        <LeftPanel />
-        <CanvasArea />
-        <RightPanel />
+        {appMode === 'customer' ? (
+          <>
+            <CustomerPersonalizationPanel onOpenPreview={() => setStep(3)} />
+            <CanvasArea />
+          </>
+        ) : (
+          <>
+            <LeftPanel />
+            <CanvasArea />
+            <RightPanel />
+          </>
+        )}
       </div>
 
       {/* 3D Physical Preview Modal */}

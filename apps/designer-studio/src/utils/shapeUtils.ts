@@ -9,7 +9,7 @@ export const CARD_HEIGHT = 794;
  * Returns a dynamic CSS clip-path string for the card paper shape
  */
 export function getCardClipPath(cardShape: CardShape): string {
-  const { shapeId, clipPath, archHeight = 200, cornerRadius = 0, flapDepth = 150, fourSides, cutOuts } = cardShape;
+  const { shapeId, archHeight = 200, cornerRadius = 0, flapDepth = 150, fourSides, cutOuts } = cardShape;
 
   // 1. Prioritize outer_shape CutOut placed on page
   const outerCut = cutOuts?.find(c => c.cutMode === 'outer_shape');

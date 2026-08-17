@@ -61,12 +61,36 @@ export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose }) =
         {/* Content Form */}
         <form onSubmit={handlePublish} className="p-5 space-y-4 text-xs">
           {successMsg ? (
-            <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
               <CheckCircle2 className="h-12 w-12 text-emerald-500 animate-bounce" />
-              <h4 className="text-base font-bold text-emerald-400">Template Published Successfully!</h4>
+              <h4 className="text-base font-bold text-emerald-400">Template Published &amp; Frozen!</h4>
               <p className="text-neutral-400 text-xs max-w-xs">
-                Version <span className="text-amber-500 font-bold">{versionTag}</span> has been frozen and pushed to the Customer Portal & Print ERP.
+                Version <span className="text-amber-500 font-bold">{versionTag}</span> has been published and a secure customer token generated.
               </p>
+
+              <div className="w-full p-3 rounded-xl bg-neutral-900 border border-neutral-800 space-y-2 text-left">
+                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider block">
+                  SECURE CUSTOMER LINK
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`https://vcm-vector-platform-alb-1222199928.us-east-1.elb.amazonaws.com/customize/pub_tok_${Date.now()}`}
+                    className="w-full bg-black text-neutral-300 font-mono text-[10px] px-2.5 py-1.5 rounded border border-neutral-800 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://vcm-vector-platform-alb-1222199928.us-east-1.elb.amazonaws.com/customize/pub_tok_${Date.now()}`);
+                      useStudioStore.getState().showToast(`✓ Customer link copied to clipboard!`);
+                    }}
+                    className="px-3 py-1.5 rounded font-bold text-xs bg-[#C9956C] text-[#161412] hover:bg-[#D4A37A] whitespace-nowrap"
+                  >
+                    Copy Link
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -114,6 +138,28 @@ export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose }) =
                     <option value="Premium">Premium (₹180/card)</option>
                     <option value="Luxury">Luxury (₹250/card)</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Customer Personalization Pre-flight Summary */}
+              <div className="p-3 rounded-xl bg-[#1A1816] border border-[#252118] space-y-2">
+                <span className="text-[10px] font-bold text-[#C9956C] uppercase tracking-wider block">
+                  CUSTOMER PERSONALIZATION SUMMARY
+                </span>
+                <div className="grid grid-cols-2 gap-1 text-[11px] text-[#E5D7C5]">
+                  {pages.flatMap(p => p.textBlocks.filter(tb => tb.editableByCustomer || tb.isCustomizable)).map(tb => (
+                    <span key={tb.id} className="flex items-center gap-1 font-medium">
+                      <span className="text-emerald-400 font-bold">✓</span> {tb.name || tb.variableKey || 'Text Field'}
+                    </span>
+                  ))}
+                  {pages.flatMap(p => p.elements.filter(el => el.editableByCustomer)).map(el => (
+                    <span key={el.id} className="flex items-center gap-1 font-medium">
+                      <span className="text-emerald-400 font-bold">✓</span> {el.name || 'Customer Image'}
+                    </span>
+                  ))}
+                </div>
+                <div className="pt-1.5 border-t border-[#252118] text-[10px] text-[#8C8073]">
+                  <strong className="text-[#C9956C]">Protected Elements:</strong> Card Background, Die-Cut Geometry, Border Motifs, Designer Typography Layout.
                 </div>
               </div>
 

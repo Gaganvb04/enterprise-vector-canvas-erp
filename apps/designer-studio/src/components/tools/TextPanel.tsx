@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Type, Plus, Sparkles, Languages, Heading1, Heading2, AlignLeft,
-  Search, Check, Wand2
+  Type, Sparkles, Languages, Heading1, Heading2, AlignLeft,
+  Search, Wand2
 } from 'lucide-react';
 import { useStudioStore, type TextBlock, type TextBlockType } from '../../store/studioStore';
 
@@ -246,9 +246,10 @@ export const TextPanel: React.FC = () => {
   };
 
   const handleAddVariableTag = (varObj: typeof DYNAMIC_VARIABLES[number]) => {
+    const rawKey = varObj.tag.replace(/[{}]/g, '').trim();
     const block: Omit<TextBlock, 'id'> = {
       blockType: 'free',
-      name: varObj.label,
+      name: `${varObj.label} Variable`,
       content: varObj.tag,
       language: 'en',
       x: 100,
@@ -264,6 +265,9 @@ export const TextPanel: React.FC = () => {
       letterSpacing: 0,
       locked: false,
       visible: true,
+      variableKey: rawKey,
+      isCustomizable: true,
+      editableByCustomer: true,
     };
 
     addTextBlock(activePageId, block);

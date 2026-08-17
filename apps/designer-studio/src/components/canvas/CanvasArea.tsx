@@ -270,7 +270,9 @@ const DraggableTextBlock: React.FC<{
   };
 
   const resolveVariables = useStudioStore(s => s.resolveVariables);
+  const showVariableHighlights = useStudioStore(s => s.showVariableHighlights);
   const displayContent = resolveVariables(block.content);
+  const isVariableBlock = !!block.variableKey || block.content.includes('{{');
 
   return (
     <div
@@ -281,10 +283,34 @@ const DraggableTextBlock: React.FC<{
         width: block.width,
         position: 'absolute',
         cursor: block.locked ? 'not-allowed' : 'move',
+        border: showVariableHighlights && isVariableBlock ? '1.5px dashed #C9956C' : undefined,
+        padding: showVariableHighlights && isVariableBlock ? '2px 4px' : undefined,
+        borderRadius: showVariableHighlights && isVariableBlock ? '4px' : undefined,
       }}
       onMouseDown={handleMouseDown}
       onDoubleClick={() => !block.locked && setEditing(true)}
     >
+      {showVariableHighlights && isVariableBlock && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -18,
+            left: 0,
+            background: '#C9956C',
+            color: '#161412',
+            fontSize: 9,
+            fontWeight: 'bold',
+            padding: '1px 5px',
+            borderRadius: '3px',
+            pointerEvents: 'none',
+            zIndex: 10,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          🏷️ {block.variableKey || 'Variable'}
+        </div>
+      )}
+
       {editing ? (
         <textarea
           autoFocus

@@ -36,6 +36,9 @@ import type {
 } from '../types/diecut';
 import { PARTIAL_CUT_SHAPES } from '../utils/partialCutShapes';
 import { publishTemplateToApi } from '../lib/templateApiService';
+import type { InvitationVariable } from '../types/variable';
+import { INITIAL_VARIABLES } from '../types/variable';
+import type { StarterTemplate } from '../data/starterTemplates';
 
 export interface CardShape {
   shapeId: string;        // 'rectangle' | 'arch_top' | 'scalloped' | 'custom' | ...
@@ -86,6 +89,8 @@ export interface DesignElement {
   flipV: boolean;
   locked: boolean;
   visible: boolean;
+  type?: 'image' | 'shape' | 'svg';
+  editableByCustomer?: boolean;
 }
 
 export interface TextBlock {
@@ -108,6 +113,10 @@ export interface TextBlock {
   printFinish?: PrintFinish;
   locked: boolean;
   visible: boolean;
+  // Phase 9 Variable System Extensions
+  variableKey?: string;         // e.g. "bride_name" if directly bound to variable
+  isCustomizable?: boolean;     // true if customizable by customer, false if static text
+  editableByCustomer?: boolean; // true if customer can edit in future Customer Mode
 }
 
 export interface InvitationPage {
@@ -159,10 +168,19 @@ export interface StudioState {
   pencilStrokeColor: string;
   pencilStrokeWidth: number;
 
-  // Phase 5 Typography & Variable Engine
+  // Phase 5 & Phase 9 Typography & Variable Engine
   previewVariables: boolean;
+  showVariableHighlights: boolean;
+  variables: InvitationVariable[];
   sampleCustomerData: Record<string, string>;
+  customerVariables: Record<string, { label: string; value: string; category?: string }>;
   togglePreviewVariables: () => void;
+  toggleVariableHighlights: () => void;
+  updateVariableValue: (key: string, value: string) => void;
+  addCustomVariable: (variable: Omit<InvitationVariable, 'id'>) => void;
+  deleteCustomVariable: (key: string) => void;
+  resetPreviewData: () => void;
+  validateVariables: () => { isValid: boolean; missingFields: string[]; warnings: string[] };
   updateSampleCustomerData: (updates: Partial<Record<string, string>>) => void;
   resolveVariables: (content: string) => string;
 
@@ -225,7 +243,22 @@ export interface StudioState {
   setDrawForceClose: (close: boolean) => void;
   setDrawBridgeCount: (count: number) => void;
   setDrawBridgeWidthMm: (width: number) => void;
-  setDrawScoreFold: (fold: 'none' | 'vertical' | 'horizontal') => void;
+  // Phase 10 & 11 Customer Mode & Review Workflow State
+  currentStep: 1 | 2 | 3 | 4;
+  templateGalleryOpen: boolean;
+  approvalStatus: 'draft' | 'approved';
+  appMode: 'designer' | 'customer';
+  customerSubmissionStatus: 'draft' | 'ready' | 'submitted' | 'approved' | 'changes_requested';
+  designerReviewNotes: string;
+  setStep: (step: 1 | 2 | 3 | 4) => void;
+  setTemplateGalleryOpen: (open: boolean) => void;
+  setApprovalStatus: (status: 'draft' | 'approved') => void;
+  setAppMode: (mode: 'designer' | 'customer') => void;
+  setCustomerSubmissionStatus: (status: 'draft' | 'ready' | 'submitted' | 'approved' | 'changes_requested') => void;
+  setDesignerReviewNotes: (notes: string) => void;
+  toggleElementCustomerEditable: (pageId: string, elementId: string) => void;
+  toggleTextBlockCustomerEditable: (pageId: string, blockId: string) => void;
+  loadStarterTemplate: (template: StarterTemplate) => void;
 
   // Die-Cut Engine V2 State
   showProductionLines: boolean;
@@ -487,33 +520,177 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   pencilStrokeColor: '#5C1A1A',
   pencilStrokeWidth: 4,
 
-  // Phase 5 Typography & Variable Engine
+  // Phase 5 & Phase 9 Typography & Variable Engine
   previewVariables: true,
+  showVariableHighlights: false,
+  variables: INITIAL_VARIABLES,
   sampleCustomerData: {
-    groom_name: 'Chi. Ry. Ramesh Gowda',
-    bride_name: 'Chi. Sou. Ananya Rao',
-    wedding_date: 'Sunday, 24th November 2026',
-    wedding_time: '10:15 AM (Lagna: Dhanus)',
-    reception_time: 'Saturday 23rd Nov, 7:00 PM Onwards',
-    venue_name: 'Grand Palace Convention Center',
-    venue_address: 'Palace Grounds, Bengaluru, Karnataka 560080',
-    rsvp_phone: '+91 98765 43210 / +91 98123 45678',
-    host_family: 'Smt. Lakshmi & Sri. Ramakrishnappa Gowda',
-    blessing_deity: 'II Sri Lakshmi Narasimha Swamy Prasanna II'
+    groom_name: 'Rahul',
+    bride_name: 'Priya',
+    wedding_date: '24 October 2026',
+    wedding_time: '7:30 PM',
+    reception_time: '6:30 PM Onwards',
+    venue_name: 'Sri Convention Hall',
+    venue_address: 'Bengaluru',
+    rsvp_phone: '+91 98765 43210',
+    host_family: 'Smt. Sunita & Sri K. Sharma',
+    blessing_deity: 'II Sri Ganeshaya Namah II'
+  },
+  customerVariables: {
+    bride_name: { label: 'Bride Name', value: 'Priya', category: 'Couples' },
+    groom_name: { label: 'Groom Name', value: 'Rahul', category: 'Couples' },
+    wedding_date: { label: 'Wedding Date', value: '24 October 2026', category: 'Schedule' },
+    wedding_time: { label: 'Wedding Time', value: '7:30 PM', category: 'Schedule' },
+    reception_time: { label: 'Reception Time', value: '6:30 PM Onwards', category: 'Schedule' },
+    venue_name: { label: 'Venue Name', value: 'Sri Convention Hall', category: 'Location' },
+    venue_address: { label: 'Venue Address', value: 'Bengaluru', category: 'Location' },
+    rsvp_phone: { label: 'RSVP Phone', value: '+91 98765 43210', category: 'Contacts' },
+    host_family: { label: 'Host Family', value: 'Smt. Sunita & Sri K. Sharma', category: 'Family' },
+    blessing_deity: { label: 'Deity Blessing', value: 'II Sri Ganeshaya Namah II', category: 'Invocation' }
   },
   togglePreviewVariables: () => set(state => ({ previewVariables: !state.previewVariables })),
+  toggleVariableHighlights: () => set(state => ({ showVariableHighlights: !state.showVariableHighlights })),
+
+  updateVariableValue: (key: string, value: string) => set(state => {
+    const updatedVars = state.variables.map(v => v.key === key ? { ...v, value } : v);
+    const updatedSampleData = { ...state.sampleCustomerData, [key]: value };
+    const currCustVar = state.customerVariables[key] || { label: key, value: '', category: 'Custom' };
+    const updatedCustomerVars = {
+      ...state.customerVariables,
+      [key]: { ...currCustVar, value }
+    };
+    return {
+      variables: updatedVars,
+      sampleCustomerData: updatedSampleData,
+      customerVariables: updatedCustomerVars
+    };
+  }),
+
+  addCustomVariable: (newVar) => set(state => {
+    const varObj: InvitationVariable = {
+      ...newVar,
+      id: `v-custom-${Date.now()}`
+    };
+    return {
+      variables: [...state.variables, varObj],
+      sampleCustomerData: { ...state.sampleCustomerData, [varObj.key]: varObj.value }
+    };
+  }),
+
+  deleteCustomVariable: (key: string) => set(state => {
+    const nextVars = state.variables.filter(v => v.key !== key);
+    const nextSampleData = { ...state.sampleCustomerData };
+    delete nextSampleData[key];
+    return {
+      variables: nextVars,
+      sampleCustomerData: nextSampleData
+    };
+  }),
+
+  resetPreviewData: () => set(state => {
+    const resetVars = state.variables.map(v => ({ ...v, value: v.defaultValue }));
+    const resetSampleData: Record<string, string> = {};
+    resetVars.forEach(v => { resetSampleData[v.key] = v.defaultValue; });
+    return {
+      variables: resetVars,
+      sampleCustomerData: resetSampleData
+    };
+  }),
+
+  validateVariables: () => {
+    const { variables } = get();
+    const missingFields: string[] = [];
+    const warnings: string[] = [];
+
+    variables.forEach(v => {
+      if (v.required && (!v.value || v.value.trim() === '')) {
+        missingFields.push(v.label);
+      }
+    });
+
+    return {
+      isValid: missingFields.length === 0,
+      missingFields,
+      warnings
+    };
+  },
+
   updateSampleCustomerData: (updates) => set(state => ({
     sampleCustomerData: { ...state.sampleCustomerData, ...(updates as Record<string, string>) }
   })),
+
   resolveVariables: (content: string) => {
-    const { previewVariables, sampleCustomerData } = get();
-    if (!previewVariables || !content) return content;
+    const { previewVariables, variables, sampleCustomerData } = get();
+    if (!content) return content;
+
     let resolved = content;
-    Object.entries(sampleCustomerData).forEach(([key, val]) => {
+    const varMap: Record<string, string> = {};
+
+    variables.forEach(v => {
+      const valToUse = previewVariables
+        ? (v.value.trim() !== '' ? v.value : `[${v.label}]`)
+        : `[${v.label}]`;
+      varMap[v.key] = valToUse;
+    });
+
+    Object.entries(sampleCustomerData).forEach(([k, val]) => {
+      if (val && !varMap[k]) {
+        varMap[k] = val;
+      }
+    });
+
+    Object.entries(varMap).forEach(([key, val]) => {
       const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
       resolved = resolved.replace(regex, val);
     });
+
     return resolved;
+  },
+
+  // Phase 10 Saleable Workflow Implementation
+  currentStep: 2,
+  templateGalleryOpen: false,
+  approvalStatus: 'draft',
+  appMode: 'designer',
+  customerSubmissionStatus: 'draft',
+  designerReviewNotes: '',
+  setStep: (step) => set({ currentStep: step }),
+  setTemplateGalleryOpen: (open) => set({ templateGalleryOpen: open }),
+  setApprovalStatus: (status) => set({ approvalStatus: status }),
+  setAppMode: (mode) => set({ appMode: mode }),
+  setCustomerSubmissionStatus: (status) => set({ customerSubmissionStatus: status }),
+  setDesignerReviewNotes: (notes) => set({ designerReviewNotes: notes }),
+
+  toggleElementCustomerEditable: (pageId, elementId) => set(state => ({
+    pages: state.pages.map(p => p.id === pageId ? {
+      ...p,
+      elements: p.elements.map(el => el.id === elementId ? { ...el, editableByCustomer: !el.editableByCustomer } : el)
+    } : p)
+  })),
+
+  toggleTextBlockCustomerEditable: (pageId, blockId) => set(state => ({
+    pages: state.pages.map(p => p.id === pageId ? {
+      ...p,
+      textBlocks: p.textBlocks.map(tb => tb.id === blockId ? { ...tb, editableByCustomer: !tb.editableByCustomer, isCustomizable: !tb.editableByCustomer } : tb)
+    } : p)
+  })),
+
+  loadStarterTemplate: (template: StarterTemplate) => {
+    const pages = template.pages.map(p => ({
+      ...p,
+      cardShape: { ...template.cardShape, cutOuts: p.cardShape?.cutOuts || [] },
+    }));
+
+    set({
+      documentName: template.name,
+      pages,
+      activePageId: pages[0]?.id || 'p1',
+      partialCuts: template.partialCuts || [],
+      selected: null,
+      selectedPartialCutId: null,
+      currentStep: 1,
+      approvalStatus: 'draft',
+    });
   },
 
   // Phase 6 Foil Engine & Page Actions
@@ -829,7 +1006,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   setDrawForceClose: (close) => set({ drawForceClose: close }),
   setDrawBridgeCount: (count) => set({ drawBridgeCount: count }),
   setDrawBridgeWidthMm: (width) => set({ drawBridgeWidthMm: width }),
-  setDrawScoreFold: (fold) => set({ drawScoreFold: fold }),
+  setDrawScoreFold: (fold: 'none' | 'vertical' | 'horizontal') => set({ drawScoreFold: fold }),
 
   // ─── Phase 1 UI Experience State Initializers & Actions ─────────────────────
   uiMode: 'design',

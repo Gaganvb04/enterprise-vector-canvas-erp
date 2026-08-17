@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import {
   Trash2, Lock, Unlock, RotateCcw, FlipHorizontal, FlipVertical,
-  ChevronDown, ChevronRight, Scissors, Box, Sliders, CheckCircle2,
-  FileText, Type as TypeIcon, Image as ImageIcon, Grid
+  ChevronDown, ChevronRight, Scissors, Box, Sliders,
+  FileText, Type as TypeIcon, Image as ImageIcon, Grid,
+  AlignLeft, AlignCenter, AlignRight
 } from 'lucide-react';
 import { useStudioStore, type PrintFinish } from '../../store/studioStore';
 import { VECTOR_DIE_CUT_LIBRARY } from '../../data/diecutLibrary';
+import ProductionValidationPanel from '../tools/ProductionValidationPanel';
 
 const mmToPx = 3.78;
 const pxToMm = (px: number) => Math.round(px / mmToPx);
@@ -69,7 +71,7 @@ export const RightPanel: React.FC = () => {
     updatePartialCutObject, updateElement, updateTextBlock, deleteElement, deleteTextBlock,
     setSelected, bringForward, sendBackward, bringToFront, sendToBack,
     uiMode, setUiMode, showRulers, toggleRulers, showGrid, toggleGrid, rotatePage,
-    materialConfig, setMaterialGsm, setBleedMm, setSafeAreaMm, runProductionValidation,
+    materialConfig, setMaterialGsm, setBleedMm, setSafeAreaMm,
     setEdgeSide, showToast,
   } = useStudioStore();
 
@@ -238,9 +240,40 @@ export const RightPanel: React.FC = () => {
             value={selectedText.content}
             onChange={e => updateTextBlock(page.id, selectedText.id, { content: e.target.value })}
             rows={3}
-            className="w-full bg-[#161412] text-[#E5D7C5] text-xs p-2 rounded border border-[#252118] outline-none focus:border-[#C9956C]"
+            className="w-full bg-[#161412] text-[#E5D7C5] text-xs p-2 rounded border border-[#252118] outline-none focus:border-[#C9956C] font-mono"
           />
         </div>
+
+        {/* Phase 9 Variable Binding & Customer Customization Inspector */}
+        <CollapsibleSection title="Variable Binding & Mode" icon={<FileText className="h-3.5 w-3.5" />}>
+          <Row label="Variable Tag">
+            <span className="font-mono text-amber-300 font-bold text-xs">
+              {selectedText.variableKey ? `{{${selectedText.variableKey}}}` : selectedText.content.includes('{{') ? 'Mixed Variable' : 'None (Static)'}
+            </span>
+          </Row>
+
+          <Row label="Live Preview">
+            <span className="font-semibold text-[#E5D7C5] text-xs truncate max-w-[130px]">
+              {useStudioStore.getState().resolveVariables(selectedText.content)}
+            </span>
+          </Row>
+
+          <Row label="Customer Editable">
+            <button
+              onClick={() => updateTextBlock(page.id, selectedText.id, {
+                editableByCustomer: selectedText.editableByCustomer !== false ? false : true,
+                isCustomizable: selectedText.editableByCustomer !== false ? false : true
+              })}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                selectedText.editableByCustomer !== false
+                  ? 'bg-[#C9956C] text-[#161412] border-[#C9956C]'
+                  : 'bg-[#1A1816] text-[#8C8073] border-[#252118]'
+              }`}
+            >
+              {selectedText.editableByCustomer !== false ? 'CUSTOMIZABLE' : 'STATIC TEXT'}
+            </button>
+          </Row>
+        </CollapsibleSection>
 
         <CollapsibleSection title="Typography">
           <Row label="Font">
@@ -255,17 +288,33 @@ export const RightPanel: React.FC = () => {
             </select>
           </Row>
           <Row label="Size"><NumInput value={selectedText.fontSize} onChange={v => updateTextBlock(page.id, selectedText.id, { fontSize: Math.max(6, v) })} suffix="pt" /></Row>
-          <Row label="Weight">
-            <select
-              value={selectedText.fontWeight}
-              onChange={e => updateTextBlock(page.id, selectedText.id, { fontWeight: e.target.value })}
-              className="bg-[#1A1816] text-[#E5D7C5] text-xs px-2 py-1 rounded border border-[#252118] outline-none"
-            >
-              {['300', '400', '500', '600', '700', '800'].map(w => (
-                <option key={w} value={w}>{w}</option>
-              ))}
-            </select>
+          <Row label="Alignment">
+            <div className="flex gap-1 bg-[#1A1816] p-0.5 rounded border border-[#252118]">
+              <button
+                onClick={() => updateTextBlock(page.id, selectedText.id, { textAlign: 'left' })}
+                className={`p-1 rounded text-xs ${selectedText.textAlign === 'left' ? 'bg-[#C9956C] text-[#161412]' : 'text-[#8C8073]'}`}
+                title="Align Left"
+              >
+                <AlignLeft className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => updateTextBlock(page.id, selectedText.id, { textAlign: 'center' })}
+                className={`p-1 rounded text-xs ${selectedText.textAlign === 'center' ? 'bg-[#C9956C] text-[#161412]' : 'text-[#8C8073]'}`}
+                title="Align Center"
+              >
+                <AlignCenter className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => updateTextBlock(page.id, selectedText.id, { textAlign: 'right' })}
+                className={`p-1 rounded text-xs ${selectedText.textAlign === 'right' ? 'bg-[#C9956C] text-[#161412]' : 'text-[#8C8073]'}`}
+                title="Align Right"
+              >
+                <AlignRight className="h-3 w-3" />
+              </button>
+            </div>
           </Row>
+          <Row label="Line Height"><NumInput value={selectedText.lineHeight || 1.4} onChange={v => updateTextBlock(page.id, selectedText.id, { lineHeight: v })} min={0.8} max={3.0} step={0.1} /></Row>
+          <Row label="Letter Spacing"><NumInput value={selectedText.letterSpacing || 0} onChange={v => updateTextBlock(page.id, selectedText.id, { letterSpacing: v })} min={-2} max={10} step={0.5} suffix="px" /></Row>
         </CollapsibleSection>
 
         <CollapsibleSection title="Appearance">
@@ -324,6 +373,21 @@ export const RightPanel: React.FC = () => {
             <img src={selectedElement.src} alt={selectedElement.name} className="max-h-24 max-w-full object-contain" />
           )}
         </div>
+
+        <CollapsibleSection title="Customer Personalization" icon={<FileText className="h-3.5 w-3.5" />}>
+          <Row label="Customer Editable">
+            <button
+              onClick={() => updateElement(page.id, selectedElement.id, { editableByCustomer: !selectedElement.editableByCustomer })}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                selectedElement.editableByCustomer
+                  ? 'bg-[#C9956C] text-[#161412] border-[#C9956C]'
+                  : 'bg-[#1A1816] text-[#8C8073] border-[#252118]'
+              }`}
+            >
+              {selectedElement.editableByCustomer ? 'CUSTOMER EDITABLE: ON' : 'PROTECTED: OFF'}
+            </button>
+          </Row>
+        </CollapsibleSection>
 
         <CollapsibleSection title="Transform">
           <Row label="Width"><NumInput value={pxToMm(selectedElement.width)} onChange={v => updateElement(page.id, selectedElement.id, { width: v * mmToPx })} suffix="mm" /></Row>
@@ -426,16 +490,8 @@ export const RightPanel: React.FC = () => {
         <Row label="Min Gap"><span className="font-mono text-[#8C8073]">{materialConfig.minGapMm} mm</span></Row>
 
         {/* Validation Status */}
-        <div className="mt-2 p-2 rounded bg-[#1A1816] border border-[#252118] space-y-1.5">
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="font-bold text-[#8C8073]">VALIDATION STATUS</span>
-            <span className="font-bold text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Ready
-            </span>
-          </div>
-          <button onClick={runProductionValidation} className="w-full py-1 rounded bg-[#252118] text-[10px] font-bold text-[#E5D7C5] hover:bg-[#322C22]">
-            Run Diagnostic Scan
-          </button>
+        <div className="mt-2">
+          <ProductionValidationPanel />
         </div>
       </CollapsibleSection>
     </div>

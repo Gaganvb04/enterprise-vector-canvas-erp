@@ -15,6 +15,7 @@ import configRoutes from './domains/config/config.routes';
 import assemblyRoutes from './domains/orders/assembly.routes';
 import aiRoutes from './domains/ai/ai.routes';
 import s3Routes from './domains/aws/s3.routes';
+import customerWorkflowRoutes from './domains/templates/customer-workflow.routes';
 
 import Stripe from 'stripe';
 import prisma from './lib/prisma';
@@ -137,6 +138,7 @@ app.use('/api/requests', requestsRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/assembly-tasks', assemblyRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/customer-workflow', customerWorkflowRoutes);
 app.use('/api/aws/s3', s3Routes);
 
 app.get('/health', (req, res) => {

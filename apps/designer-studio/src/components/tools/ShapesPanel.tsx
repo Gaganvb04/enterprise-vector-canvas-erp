@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import {
-  Scissors, History, Star, Clock, Check, Sparkles, X,
-  Pencil, Trash2, ChevronRight, Layers, LayoutGrid
+  Scissors, History, Star, Clock, X,
+  Pencil, Trash2, Layers, LayoutGrid
 } from 'lucide-react';
 import { useStudioStore } from '../../store/studioStore';
 import { ShapeData } from '../../data/shapes';
+
+type SubTab = 'library' | 'recents' | 'favorites' | 'history';
 
 const SECTIONS = [
   { id: 'all', label: 'All' },
@@ -21,7 +23,7 @@ export const ShapesPanel: React.FC = () => {
     activePageId, getActivePage, showToast,
     activeTool, setActiveTool,
     addCutOut, setCardShape, resetEdges,
-    updateCutOut, setCutOutMode, removeCutOut,
+    setCutOutMode, removeCutOut,
     selectedShapeForDrawing, setSelectedShapeForDrawing,
     recentShapes, addRecentShape, removeRecentShape, clearRecentShapes,
     favorites, toggleFavorite,

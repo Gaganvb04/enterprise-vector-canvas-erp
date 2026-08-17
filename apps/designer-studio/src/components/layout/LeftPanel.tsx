@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   MousePointer, PenTool, Type, Image as ImageIcon, Square, Scissors, Palette,
-  Layers, FileText, X, Search, Star, Check, Edit2, Eye, EyeOff,
-  Trash2
+  Layers, FileText, X, Search, Star, Check, Users
 } from 'lucide-react';
 import { useStudioStore } from '../../store/studioStore';
 import { DieCutLibraryRegistry, VECTOR_DIE_CUT_LIBRARY, type LibraryShapeItem } from '../../data/diecutLibrary';
@@ -14,17 +13,18 @@ import { ColorsPanel } from '../tools/ColorsPanel';
 import { TextPanel } from '../tools/TextPanel';
 import { LayersPanel } from '../tools/LayersPanel';
 import { UploadsPanel } from '../tools/UploadsPanel';
+import { CustomerDataPanel } from '../tools/CustomerDataPanel';
+import { UsedShapesPanel } from '../tools/UsedShapesPanel';
 
-export type ToolDockItem = 'select' | 'draw' | 'text' | 'image' | 'shapes' | 'diecut' | 'colors' | 'layers' | 'pages';
+export type ToolDockItem = 'select' | 'draw' | 'text' | 'image' | 'shapes' | 'diecut' | 'colors' | 'layers' | 'pages' | 'customer_data';
 
 export const LeftPanel: React.FC = () => {
   const {
     activeTool, setActiveTool,
     favorites, toggleFavorite, recentShapes, addRecentShape,
     selectedEdgeSide, setSelectedEdgeSide, setApplyAllEdges, setMirrorEdges, resetEdges,
-    setEdgeSide, addPartialCutObject, updatePartialCutObject, removePartialCutObject,
+    setEdgeSide, addPartialCutObject,
     pages, activePageId, setActivePage, getActivePage, setSelectedPartialCutId,
-    selectedPartialCutId,
     pencilStrokeColor, setPencilStrokeColor, pencilStrokeWidth, setPencilStrokeWidth, showToast,
     // Phase 8 Freehand State
     drawDieCutTool, setDrawDieCutTool,
@@ -38,8 +38,6 @@ export const LeftPanel: React.FC = () => {
   const [diecutCategory, setDiecutCategory] = useState<'Edge' | 'Corner' | 'Partial' | 'Aperture'>('Edge');
   const [diecutSubCat, setDiecutSubCat] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingUsedId, setEditingUsedId] = useState<string | null>(null);
-  const [editingUsedName, setEditingUsedName] = useState<string>('');
 
   const activePage = getActivePage();
 
@@ -158,9 +156,6 @@ export const LeftPanel: React.FC = () => {
       )
     : 'Straight';
 
-  // Page-aware Used Die-Cuts list for active page
-  const pagePartialCuts = useStudioStore(s => s.partialCuts);
-
   return (
     <div className="flex flex-shrink-0 h-full relative select-none z-30">
       {/* ─── 1. VERTICAL TOOL DOCK ────────────────────────────────────────── */}
@@ -254,6 +249,16 @@ export const LeftPanel: React.FC = () => {
         >
           <FileText className="h-4 w-4" />
         </button>
+
+        <button
+          onClick={() => handleToolClick('customer_data')}
+          className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+            activeDrawer === 'customer_data' ? 'bg-[#252118] text-[#C9956C] border border-[#C9956C]' : 'text-[#9E9285] hover:bg-[#252118] hover:text-[#E5D7C5]'
+          }`}
+          title="Customer Data & Merge Variables"
+        >
+          <Users className="h-4 w-4" />
+        </button>
       </div>
 
       {/* ─── 2. CONTEXTUAL FLYOUT DRAWER (280px) ───────────────────────────── */}
@@ -270,6 +275,7 @@ export const LeftPanel: React.FC = () => {
               {activeDrawer === 'colors' && <Palette className="h-3.5 w-3.5 text-[#C9956C]" />}
               {activeDrawer === 'layers' && <Layers className="h-3.5 w-3.5 text-[#C9956C]" />}
               {activeDrawer === 'pages' && <FileText className="h-3.5 w-3.5 text-[#C9956C]" />}
+              {activeDrawer === 'customer_data' && <Users className="h-3.5 w-3.5 text-[#C9956C]" />}
               {activeDrawer.toUpperCase()}
             </span>
             <button onClick={() => setActiveDrawer(null)} className="p-1 rounded text-[#9E9285] hover:text-[#E5D7C5] hover:bg-[#252118]">
@@ -531,108 +537,7 @@ export const LeftPanel: React.FC = () => {
                 )}
 
                 {/* ─── SUB-TAB 3: USED DIE-CUTS LIST (PAGE-AWARE) ───────────── */}
-                {diecutTab === 'USED' && (
-                  <div className="space-y-2 max-h-[62vh] overflow-y-auto pr-1">
-                    <div className="p-2 rounded bg-[#1A1816] border border-[#252118] text-center">
-                      <span className="text-[10px] text-[#8C8073]">
-                        Die-Cuts present on Page {activePage?.pageNumber || 1}: {activePage?.label}
-                      </span>
-                    </div>
-
-                    {/* Partial Cuts & Custom Drawn Cuts */}
-                    {pagePartialCuts.map(pc => (
-                      <div
-                        key={pc.id}
-                        onClick={() => {
-                          setSelectedPartialCutId(pc.id);
-                          showToast(`Selected ${pc.name}`);
-                        }}
-                        className={`p-2.5 rounded-lg border flex flex-col gap-1.5 cursor-pointer transition-all ${
-                          selectedPartialCutId === pc.id ? 'bg-[#252118] border-[#C9956C]' : 'bg-[#1A1816] border-[#252118] hover:border-[#C9956C]/50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          {editingUsedId === pc.id ? (
-                            <input
-                              type="text"
-                              autoFocus
-                              value={editingUsedName}
-                              onChange={e => setEditingUsedName(e.target.value)}
-                              onBlur={() => {
-                                setEditingUsedId(null);
-                                if (editingUsedName.trim()) updatePartialCutObject(pc.id, { name: editingUsedName.trim() });
-                              }}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') {
-                                  setEditingUsedId(null);
-                                  if (editingUsedName.trim()) updatePartialCutObject(pc.id, { name: editingUsedName.trim() });
-                                }
-                              }}
-                              className="text-xs font-bold px-1 py-0.5 rounded bg-[#111] text-[#E5D7C5] outline-none border border-[#C9956C]"
-                            />
-                          ) : (
-                            <span className="text-xs font-bold text-[#E5D7C5] flex items-center gap-1.5 truncate">
-                              <Scissors className="h-3 w-3 text-pink-400" />
-                              {pc.name}
-                            </span>
-                          )}
-
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                setEditingUsedId(pc.id);
-                                setEditingUsedName(pc.name);
-                              }}
-                              className="p-1 rounded text-[#8C8073] hover:text-[#E5D7C5]"
-                              title="Rename object"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                updatePartialCutObject(pc.id, { visible: pc.visible === false ? true : false });
-                              }}
-                              className="p-1 rounded text-[#8C8073] hover:text-[#E5D7C5]"
-                            >
-                              {pc.visible !== false ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 text-red-400" />}
-                            </button>
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                removePartialCutObject(pc.id);
-                                setSelectedPartialCutId(null);
-                              }}
-                              className="p-1 rounded text-red-400 hover:bg-red-950/40"
-                              title="Delete die-cut"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[10px] text-[#8C8073]">
-                          <span className="uppercase font-mono text-[#C9956C]">{pc.cutType}</span>
-                          <span>{Math.round(pc.width / 3.78)}×{Math.round(pc.height / 3.78)} mm</span>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Outer Edge Configurations */}
-                    {activePage?.cardShape.fourSides && (
-                      <div className="p-2.5 rounded-lg bg-[#1A1816] border border-[#252118] space-y-1 text-xs">
-                        <span className="text-[10px] font-bold text-[#8C8073] uppercase">Outer Die-Cut Boundary</span>
-                        <div className="grid grid-cols-2 gap-1 pt-1 text-[11px] text-[#E5D7C5]">
-                          <span>Top: <strong className="text-[#C9956C]">{getEdgeLabel(activePage.cardShape.fourSides.topEdge)}</strong></span>
-                          <span>Right: <strong className="text-[#C9956C]">{getEdgeLabel(activePage.cardShape.fourSides.rightEdge)}</strong></span>
-                          <span>Bottom: <strong className="text-[#C9956C]">{getEdgeLabel(activePage.cardShape.fourSides.bottomEdge)}</strong></span>
-                          <span>Left: <strong className="text-[#C9956C]">{getEdgeLabel(activePage.cardShape.fourSides.leftEdge)}</strong></span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {diecutTab === 'USED' && <UsedShapesPanel />}
               </div>
             )}
 
@@ -707,6 +612,9 @@ export const LeftPanel: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* DRAWER 9: CUSTOMER DATA & MERGE */}
+            {activeDrawer === 'customer_data' && <CustomerDataPanel />}
           </div>
         </div>
       )}
