@@ -83,7 +83,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/vector_canvas_erp?sc
 
 # AWS S3 Storage Credentials
 AWS_REGION="us-east-1"
-AWS_ACCESS_KEY_ID="AKIA2W7FH7RDVLATPNMU"
+AWS_ACCESS_KEY_ID="YOUR_AWS_ACCESS_KEY_ID"
 AWS_SECRET_ACCESS_KEY="YOUR_AWS_SECRET_ACCESS_KEY"
 AWS_S3_BUCKET_NAME="vector-assets-prod-storage"
 ```
