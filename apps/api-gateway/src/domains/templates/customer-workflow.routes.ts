@@ -158,6 +158,61 @@ export const ordersStore: OrderRecord[] = [
   }
 ];
 
+import fs from 'fs';
+import path from 'path';
+
+const DATA_DIR = path.join(process.cwd(), 'data');
+const DB_FILE = path.join(DATA_DIR, 'customer_workflow_store.json');
+
+export function saveStoresToDisk() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    const data = {
+      publishedTemplatesStore,
+      customerSessionsStore,
+      customerSubmissionsStore,
+      productionSnapshotsStore,
+      ordersStore
+    };
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[WARN] Failed to persist stores to disk:', err);
+  }
+}
+
+export function loadStoresFromDisk() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.publishedTemplatesStore) && data.publishedTemplatesStore.length > 0) {
+        publishedTemplatesStore.length = 0;
+        publishedTemplatesStore.push(...data.publishedTemplatesStore);
+      }
+      if (Array.isArray(data.customerSessionsStore)) {
+        customerSessionsStore.length = 0;
+        customerSessionsStore.push(...data.customerSessionsStore);
+      }
+      if (Array.isArray(data.customerSubmissionsStore)) {
+        customerSubmissionsStore.length = 0;
+        customerSubmissionsStore.push(...data.customerSubmissionsStore);
+      }
+      if (Array.isArray(data.productionSnapshotsStore)) {
+        productionSnapshotsStore.length = 0;
+        productionSnapshotsStore.push(...data.productionSnapshotsStore);
+      }
+      if (Array.isArray(data.ordersStore)) {
+        ordersStore.length = 0;
+        ordersStore.push(...data.ordersStore);
+      }
+    }
+  } catch (err) {
+    console.error('[WARN] Failed to load stores from disk:', err);
+  }
+}
+
 // Audit trail store
 export const auditTrailStore: Array<{ timestamp: string; event: string; details: any }> = [];
 
@@ -167,7 +222,11 @@ function logAuditEvent(event: string, details: any) {
     event,
     details
   });
+  saveStoresToDisk();
 }
+
+// Load persisted data on startup
+loadStoresFromDisk();
 
 // ─── 1. PUBLISH TEMPLATE ────────────────────────────────────────────────────────
 router.post('/publish', (req: Request, res: Response) => {

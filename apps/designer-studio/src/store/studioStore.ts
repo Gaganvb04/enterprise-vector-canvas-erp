@@ -506,7 +506,7 @@ let toastTimer: any = null;
 
 export const useStudioStore = create<StudioState>((set, get) => ({
   documentId: `doc-${uid()}`,
-  documentName: 'New Invitation Design',
+  documentName: 'Untitled Invitation',
   eventType: 'Wedding',
   status: 'DRAFT',
   templateDbId: null,

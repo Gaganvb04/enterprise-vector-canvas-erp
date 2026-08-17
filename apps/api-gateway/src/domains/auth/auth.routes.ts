@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import prisma from '../../lib/prisma';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'rooted-memories-super-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
 router.post('/register', async (req, res) => {
   try {
