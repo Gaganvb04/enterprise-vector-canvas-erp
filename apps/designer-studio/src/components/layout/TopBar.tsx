@@ -257,7 +257,7 @@ Generated at: ${new Date().toLocaleString()}
 
   return (
     <>
-      <div className="flex flex-col flex-shrink-0 bg-[#161412] border-b border-[#252118] select-none">
+      <div className="flex flex-col flex-shrink-0 bg-[#161412] border-b border-[#252118] select-none relative z-20">
         {/* ─── LEVEL 1: APPLICATION HEADER ──────────────────────────────────── */}
         <header className="h-11 flex items-center justify-between px-4 border-b border-[#252118] bg-[#161412]">
           {/* Left: Branding & Document Title & Menus */}

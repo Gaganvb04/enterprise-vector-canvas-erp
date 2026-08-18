@@ -78,7 +78,7 @@ body {
 /* Dotted grid */
 .canvas-workspace::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   background-image: radial-gradient(circle, #2a2520 1px, transparent 1px);
   background-size: 24px 24px;
