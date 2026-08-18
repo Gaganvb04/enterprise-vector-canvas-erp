@@ -31,11 +31,11 @@
       "secrets": [
         {
           "name": "JWT_SECRET",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:736530791495:secret:prod/rooted-memoirs/jwt-secret"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:736530791495:secret:prod/rooted-memoirs/jwt-secret-d2Eo6R"
         },
         {
           "name": "DATABASE_URL",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:736530791495:secret:prod/rooted-memoirs/database-url"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:736530791495:secret:prod/rooted-memoirs/database-url-jbBsPw"
         }
       ],
       "logConfiguration": {
