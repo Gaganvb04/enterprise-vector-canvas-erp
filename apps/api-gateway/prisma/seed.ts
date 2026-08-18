@@ -160,6 +160,104 @@ async function main() {
   }
   console.log('Created Templates');
   
+  // 6. Seed Customer Workflow Demo Template
+  const demoTemplate = await prisma.publishedTemplateRecord.upsert({
+    where: { publicToken: 'pub_tok_royal_floral_123' },
+    update: {},
+    create: {
+      templateId: 'tmpl-royal-floral',
+      templateVersion: 'v1.0',
+      publicToken: 'pub_tok_royal_floral_123',
+      publishedAt: new Date(),
+      publishedBy: 'Studio Designer',
+      status: 'published',
+      customerEditableFields: ['bride_name', 'groom_name', 'wedding_date', 'wedding_time', 'venue_name', 'rsvp_phone', 'host_family', 'blessing_deity'],
+      protectedFields: ['dieCutGeometry', 'background', 'gsm', 'safeArea', 'pageDimensions', 'lockedArtwork'],
+      snapshot: {
+        name: 'Royal Floral Wedding',
+        pages: [
+          {
+            id: 'p1',
+            pageNumber: 1,
+            pageType: 'front_cover',
+            label: 'Front Cover',
+            background: { type: 'color', color: '#FAF5EF' },
+            cardShape: { shapeId: 'arch_top', archHeight: 180, cornerRadius: 16, cutOuts: [] },
+            textBlocks: [
+              { id: 'tb1', variableKey: 'bride_name', content: '{{bride_name}}', editableByCustomer: true },
+              { id: 'tb2', variableKey: 'groom_name', content: '{{groom_name}}', editableByCustomer: true },
+              { id: 'tb3', variableKey: 'wedding_date', content: '{{wedding_date}}', editableByCustomer: true },
+              { id: 'tb4', variableKey: 'venue_name', content: '{{venue_name}}', editableByCustomer: true },
+            ],
+            elements: []
+          }
+        ]
+      }
+    }
+  });
+
+  // 7. Seed Demo Customer Session
+  const demoSession = await prisma.customerWorkflowSession.upsert({
+    where: { customerSessionId: 'sess-001' },
+    update: {},
+    create: {
+      customerSessionId: 'sess-001',
+      publicToken: 'pub_tok_royal_floral_123',
+      templateId: 'tmpl-royal-floral',
+      templateVersion: 'v1.0',
+      customerData: {
+        bride_name: 'Ananya',
+        groom_name: 'Arjun',
+        wedding_date: '24 October 2026',
+        wedding_time: '7:30 PM',
+        venue_name: 'Sri Convention Hall',
+        rsvp_phone: '+91 98765 43210'
+      },
+      customerImages: {},
+      status: 'submitted'
+    }
+  });
+
+  // 8. Seed Demo Submission
+  const demoSubmission = await prisma.customerSubmissionRecord.upsert({
+    where: { submissionId: 'sub-001' },
+    update: {},
+    create: {
+      submissionId: 'sub-001',
+      customerSessionId: 'sess-001',
+      publicToken: 'pub_tok_royal_floral_123',
+      templateId: 'tmpl-royal-floral',
+      customerData: {
+        bride_name: 'Ananya',
+        groom_name: 'Arjun',
+        wedding_date: '24 October 2026',
+        wedding_time: '7:30 PM',
+        venue_name: 'Sri Convention Hall',
+        rsvp_phone: '+91 98765 43210'
+      },
+      status: 'submitted'
+    }
+  });
+
+  // 9. Seed Demo Order
+  const demoOrder = await prisma.workflowOrderRecord.upsert({
+    where: { orderId: 'RM-1001' },
+    update: {},
+    create: {
+      orderId: 'RM-1001',
+      submissionId: 'sub-001',
+      publicToken: 'pub_tok_royal_floral_123',
+      templateId: 'tmpl-royal-floral',
+      customerNames: 'Ananya & Arjun',
+      weddingDate: '24 October 2026',
+      venue: 'Sri Convention Hall',
+      status: 'submitted',
+      productionStatus: 'not_started'
+    }
+  });
+
+  console.log('Created Customer Workflow Demo Data');
+  
   console.log('Seeding completed successfully!');
 }
 

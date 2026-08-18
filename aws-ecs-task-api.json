@@ -7,6 +7,7 @@
   "cpu": "256",
   "memory": "512",
   "executionRoleArn": "arn:aws:iam::736530791495:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::736530791495:role/ecsTaskRole",
   "containerDefinitions": [
     {
       "name": "vcm-api-gateway",
@@ -26,6 +27,16 @@
         { "name": "NODE_ENV", "value": "production" },
         { "name": "AWS_REGION", "value": "us-east-1" },
         { "name": "AWS_S3_BUCKET_NAME", "value": "vector-assets-prod-storage" }
+      ],
+      "secrets": [
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:736530791495:secret:prod/rooted-memoirs/jwt-secret"
+        },
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:736530791495:secret:prod/rooted-memoirs/database-url"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

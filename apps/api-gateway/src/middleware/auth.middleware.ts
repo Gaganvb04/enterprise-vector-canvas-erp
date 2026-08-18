@@ -2,7 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+// Production requires JWT_SECRET from environment (AWS Secrets Manager)
+// Development may use runtime-generated secret (explicitly for dev only)
+const JWT_SECRET = process.env.JWT_SECRET || 
+  (process.env.NODE_ENV === 'production' 
+    ? (() => { throw new Error('FATAL: JWT_SECRET required in production. Configure AWS Secrets Manager.'); })()
+    : crypto.randomBytes(32).toString('hex'));
 
 export interface AuthRequest extends Request {
   user?: {
