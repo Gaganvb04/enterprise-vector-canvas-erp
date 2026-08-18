@@ -313,6 +313,7 @@ aws secretsmanager create-secret \
   --name prod/rooted-memoirs/jwt-secret \
   --description "JWT signing secret for Rooted Memoirs Studio" \
   --secret-string "$(openssl rand -base64 32)" \
+  --profile rooted-memoirs \
   --region us-east-1
 
 # Database URL
@@ -320,6 +321,7 @@ aws secretsmanager create-secret \
   --name prod/rooted-memoirs/database-url \
   --description "PostgreSQL connection string" \
   --secret-string "postgresql://USER:PASS@HOST:5432/rootedmemories?schema=public" \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -334,6 +336,7 @@ aws cloudformation update-stack \
     ParameterKey=SubnetIds,ParameterValue="subnet-xxxxx,subnet-yyyyy" \
     ParameterKey=AcmCertificateArn,ParameterValue=arn:aws:acm:us-east-1:736530791495:certificate/xxxxx \
   --capabilities CAPABILITY_NAMED_IAM \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -342,6 +345,7 @@ aws cloudformation update-stack \
 ```bash
 aws ecs register-task-definition \
   --cli-input-json file://aws-ecs-task-api.json \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -352,6 +356,7 @@ aws ecs update-service \
   --cluster vcm-vector-platform-cluster \
   --service vcm-api-gateway-service \
   --force-new-deployment \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 

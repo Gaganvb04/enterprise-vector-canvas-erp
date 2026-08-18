@@ -119,17 +119,35 @@ npm run dev
 
 ## ☁️ AWS Amazon ECS & ALB Production Deployment
 
-### 1. Build & Push Docker Containers to AWS ECR
-```powershell
-.\scripts\deploy-aws-ecr.ps1 -AWSAccountId "736530791495" -AWSRegion "us-east-1"
+**IMPORTANT:** All deployment commands MUST use AWS profile `rooted-memoirs` and account `736530791495`.
+
+### 1. Configure AWS Profile
+```bash
+aws configure --profile rooted-memoirs
+# AWS Access Key ID: [Your Key for account 736530791495]
+# AWS Secret Access Key: [Your Secret]
+# Default region name: us-east-1
+# Default output format: json
 ```
 
-### 2. Deploy ECS Fargate Cluster & ALB Infrastructure via CloudFormation
-```powershell
-.\scripts\deploy-aws-ecs-alb.ps1 -AWSRegion "us-east-1"
+### 2. Verify AWS Account
+```bash
+aws sts get-caller-identity --profile rooted-memoirs
+# Expected Account: 736530791495
+# Expected Region: us-east-1
 ```
 
-### 3. ALB Path-Based Routing Architecture:
+### 3. Build & Push Docker Containers to AWS ECR
+```powershell
+.\scripts\deploy-aws-ecr.ps1 -AWSProfile "rooted-memoirs" -AWSAccountId "736530791495" -AWSRegion "us-east-1"
+```
+
+### 4. Deploy ECS Fargate Cluster & ALB Infrastructure via CloudFormation
+```powershell
+.\scripts\deploy-aws-ecs-alb.ps1 -Profile "rooted-memoirs" -AWSRegion "us-east-1"
+```
+
+### 5. ALB Path-Based Routing Architecture:
 - **`http://<ALB-DNS-NAME>/`** ➔ Routes to `vcm-studio-tg` (Nginx Frontend, Port 80)
 - **`http://<ALB-DNS-NAME>/api/*`** ➔ Routes to `vcm-api-tg` (API Gateway, Port 4000)
 - **`http://<ALB-DNS-NAME>/health`** ➔ Routes to `vcm-api-tg` Health Check Endpoint

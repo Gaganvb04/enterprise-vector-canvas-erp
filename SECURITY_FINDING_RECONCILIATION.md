@@ -714,7 +714,9 @@ openssl rand -base64 32
 # Store in AWS Secrets Manager
 aws secretsmanager create-secret \
   --name prod/rooted-memoirs/jwt-secret \
-  --secret-string "YOUR_NEW_RANDOM_SECRET"
+  --secret-string "YOUR_NEW_RANDOM_SECRET" \
+  --profile rooted-memoirs \
+  --region us-east-1
 
 # Update ECS task definition to read from Secrets Manager
 # Remove hardcoded value from aws-ecs-task-api.json

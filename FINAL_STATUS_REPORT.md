@@ -184,12 +184,14 @@
 aws secretsmanager create-secret \
   --name prod/rooted-memoirs/jwt-secret \
   --secret-string "$(openssl rand -base64 32)" \
+  --profile rooted-memoirs \
   --region us-east-1
 
 # Create database URL
 aws secretsmanager create-secret \
   --name prod/rooted-memoirs/database-url \
   --secret-string "postgresql://USER:PASS@HOST:5432/rootedmemories" \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -198,13 +200,17 @@ aws secretsmanager create-secret \
 aws cloudformation update-stack \
   --stack-name rooted-memoirs-production \
   --template-body file://aws-ecs-alb-cloudformation.yml \
-  --capabilities CAPABILITY_NAMED_IAM
+  --capabilities CAPABILITY_NAMED_IAM \
+  --profile rooted-memoirs \
+  --region us-east-1
 ```
 
 #### 3. ECS Task Definition
 ```bash
 aws ecs register-task-definition \
-  --cli-input-json file://aws-ecs-task-api.json
+  --cli-input-json file://aws-ecs-task-api.json \
+  --profile rooted-memoirs \
+  --region us-east-1
 ```
 
 #### 4. ECS Service Deployment
@@ -212,7 +218,9 @@ aws ecs register-task-definition \
 aws ecs update-service \
   --cluster vcm-vector-platform-cluster \
   --service vcm-api-gateway-service \
-  --force-new-deployment
+  --force-new-deployment \
+  --profile rooted-memoirs \
+  --region us-east-1
 ```
 
 #### 5. Database Migration

@@ -561,12 +561,16 @@ JWT_SECRET=$(openssl rand -base64 32)
 
 aws secretsmanager create-secret \
   --name prod/rooted-memoirs/jwt-secret \
-  --secret-string "$JWT_SECRET"
+  --secret-string "$JWT_SECRET" \
+  --profile rooted-memoirs \
+  --region us-east-1
 
 # Create database URL secret (with real RDS endpoint)
 aws secretsmanager create-secret \
   --name prod/rooted-memoirs/database-url \
-  --secret-string "postgresql://username:password@rds-endpoint:5432/dbname"
+  --secret-string "postgresql://username:password@rds-endpoint:5432/dbname" \
+  --profile rooted-memoirs \
+  --region us-east-1
 ```
 
 **5. Configure HTTPS on ALB (1-2 hours)**

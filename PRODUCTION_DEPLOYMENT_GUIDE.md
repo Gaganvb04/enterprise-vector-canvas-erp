@@ -18,6 +18,7 @@ aws secretsmanager create-secret \
   --name prod/rooted-memoirs/jwt-secret \
   --description "JWT signing secret for Rooted Memoirs Studio" \
   --secret-string "$(openssl rand -base64 32)" \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -32,6 +33,7 @@ aws secretsmanager create-secret \
   --name prod/rooted-memoirs/database-url \
   --description "PostgreSQL connection string for Rooted Memoirs Studio" \
   --secret-string "postgresql://DB_USER:DB_PASSWORD@DB_HOST:5432/rootedmemories?schema=public" \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -139,6 +141,7 @@ npx prisma db seed
 aws acm request-certificate \
   --domain-name studio.rootedmemoirs.com \
   --validation-method DNS \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -158,6 +161,7 @@ aws cloudformation create-stack \
     ParameterKey=AcmCertificateArn,ParameterValue=arn:aws:acm:us-east-1:736530791495:certificate/xxxxx \
     ParameterKey=EnvironmentName,ParameterValue=production \
   --capabilities CAPABILITY_NAMED_IAM \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -188,7 +192,7 @@ docker tag vcm-api-gateway:$(git rev-parse --short HEAD) \
   736530791495.dkr.ecr.us-east-1.amazonaws.com/vcm-api-gateway:$(git rev-parse --short HEAD)
 
 # Login to ECR
-aws ecr get-login-password --region us-east-1 | \
+aws ecr get-login-password --profile rooted-memoirs --region us-east-1 | \
   docker login --username AWS --password-stdin 736530791495.dkr.ecr.us-east-1.amazonaws.com
 
 # Push to ECR
@@ -235,6 +239,7 @@ docker push 736530791495.dkr.ecr.us-east-1.amazonaws.com/vcm-designer-studio:lat
 ```bash
 aws ecs register-task-definition \
   --cli-input-json file://aws-ecs-task-api.json \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -246,6 +251,7 @@ aws ecs update-service \
   --cluster vcm-vector-platform-cluster \
   --service vcm-api-gateway-service \
   --force-new-deployment \
+  --profile rooted-memoirs \
   --region us-east-1
 
 # Designer Studio Service
@@ -253,6 +259,7 @@ aws ecs update-service \
   --cluster vcm-vector-platform-cluster \
   --service vcm-designer-studio-service \
   --force-new-deployment \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -263,17 +270,20 @@ aws ecs update-service \
 aws ecs describe-services \
   --cluster vcm-vector-platform-cluster \
   --services vcm-api-gateway-service vcm-designer-studio-service \
+  --profile rooted-memoirs \
   --region us-east-1
 
 # Check task status
 aws ecs list-tasks \
   --cluster vcm-vector-platform-cluster \
   --service-name vcm-api-gateway-service \
+  --profile rooted-memoirs \
   --region us-east-1
 
 # View logs
 aws logs tail /ecs/vcm-vector-platform \
   --follow \
+  --profile rooted-memoirs \
   --region us-east-1
 ```
 
@@ -304,6 +314,7 @@ grep -r "your_super_secret_jwt_key_here" apps/api-gateway/src/
 aws ecs describe-tasks \
   --cluster vcm-vector-platform-cluster \
   --tasks TASK_ARN \
+  --profile rooted-memoirs \
   --region us-east-1 \
   | jq '.tasks[0].containers[0].environment'
 
@@ -359,6 +370,7 @@ aws ecs update-service \
   --cluster vcm-vector-platform-cluster \
   --service vcm-api-gateway-service \
   --force-new-deployment \
+  --profile rooted-memoirs \
   --region us-east-1
 
 # Wait for new task to be running
@@ -444,17 +456,27 @@ psql $DATABASE_URL -c "SELECT * FROM \"ImmutableProductionSnapshotRecord\";"
 **Solution:**
 1. Verify secrets exist in Secrets Manager:
 ```bash
-aws secretsmanager describe-secret --secret-id prod/rooted-memoirs/jwt-secret --region us-east-1
+aws secretsmanager describe-secret \
+  --secret-id prod/rooted-memoirs/jwt-secret \
+  --profile rooted-memoirs \
+  --region us-east-1
 ```
 
 2. Verify task execution role has permission:
 ```bash
-aws iam get-role-policy --role-name vcm-ecsTaskExecutionRole --policy-name SecretsManagerAccess
+aws iam get-role-policy \
+  --role-name vcm-ecsTaskExecutionRole \
+  --policy-name SecretsManagerAccess \
+  --profile rooted-memoirs \
+  --region us-east-1
 ```
 
 3. Check ECS task logs:
 ```bash
-aws logs tail /ecs/vcm-vector-platform --follow --region us-east-1
+aws logs tail /ecs/vcm-vector-platform \
+  --follow \
+  --profile rooted-memoirs \
+  --region us-east-1
 ```
 
 ### Database Connection Failed
