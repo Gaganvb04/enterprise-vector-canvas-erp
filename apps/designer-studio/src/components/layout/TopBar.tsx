@@ -274,22 +274,23 @@ Generated at: ${new Date().toLocaleString()}
 
             <div className="w-px h-4 bg-[#252118]" />
 
-            {/* Document Title */}
+            {/* Document Title (Distinctly labeled Project Title badge) */}
             {editingName ? (
               <input
                 type="text"
                 autoFocus
                 value={nameValue}
                 onChange={e => setNameValue(e.target.value)}
-                onBlur={() => { setEditingName(false); setDocumentName(nameValue || 'Untitled Invitation'); }}
+                onBlur={() => { setEditingName(false); setDocumentName(nameValue.trim() || 'Untitled Invitation'); }}
                 onKeyDown={e => {
-                  if (e.key === 'Enter') { setEditingName(false); setDocumentName(nameValue || 'Untitled Invitation'); }
+                  if (e.key === 'Enter') { setEditingName(false); setDocumentName(nameValue.trim() || 'Untitled Invitation'); }
                 }}
                 className="text-xs font-semibold px-2 py-0.5 rounded bg-[#252118] text-[#E5D7C5] outline-none border border-[#C9956C]"
               />
             ) : (
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-[#C9956C] truncate max-w-[160px]">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1e1a16] border border-[#2a2520]">
+                <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#8C8073]">Project:</span>
+                <span className="text-xs font-bold text-[#E5D7C5] truncate max-w-[130px]">
                   {documentName}
                 </span>
                 <button
@@ -300,7 +301,7 @@ Generated at: ${new Date().toLocaleString()}
                     setNameValue(documentName);
                     setEditingName(true);
                   }}
-                  className="p-1 text-[#8C8073] hover:text-[#C9956C] transition-colors rounded"
+                  className="p-0.5 text-[#8C8073] hover:text-[#C9956C] transition-colors rounded"
                   title="Rename Invitation Document"
                 >
                   <Pencil className="h-3 w-3" />

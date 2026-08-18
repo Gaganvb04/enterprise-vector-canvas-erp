@@ -1087,7 +1087,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         if (parsed.pages) {
           set({
             pages: parsed.pages,
-            documentName: parsed.documentName || get().documentName,
+            documentName: (parsed.documentName && parsed.documentName !== 'New Invitation Design') ? parsed.documentName : 'Untitled Invitation',
             eventType: parsed.eventType || get().eventType,
             version: parsed.version || 'v1.0',
             designerNotes: parsed.designerNotes || 'Initial production draft template.',
