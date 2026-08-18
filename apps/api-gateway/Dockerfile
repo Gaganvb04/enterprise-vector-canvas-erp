@@ -24,6 +24,9 @@ RUN npx prisma generate && npm run build
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
+# Install runtime OpenSSL & libc compatibility libraries for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 # Security: run as non-root
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
